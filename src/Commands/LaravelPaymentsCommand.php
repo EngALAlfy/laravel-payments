@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace EngAlalfy\LaravelPayments\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class LaravelPaymentsCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'laravel-payments';
 
     public $description = 'My command';
 

@@ -1,17 +1,17 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "engalalfy/laravel-payments",
+    "description": "A unified Laravel package for multiple payment gateways (Paymob, Kashier, etc.) with easy integration and extensibility.",
     "keywords": [
-        ":vendor_name",
+        "Islam H ALAlfy",
         "laravel",
-        ":package_slug"
+        "laravel-payments"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/engalalfy/laravel-payments",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Islam H ALAlfy",
+            "email": "islam@alalfy.com",
             "role": "Developer"
         }
     ],
@@ -35,13 +35,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "EngAlalfy\\LaravelPayments\\": "src/",
+            "EngAlalfy\\LaravelPayments\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/",
+            "EngAlalfy\\LaravelPayments\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -63,10 +63,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "EngAlalfy\\LaravelPayments\\LaravelPaymentsServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "LaravelPayments": "EngAlalfy\\LaravelPayments\\Facades\\LaravelPayments"
             }
         }
     },
