@@ -4,7 +4,5 @@ namespace EngAlalfy\LaravelPayments\Services;
 
 class FawryService
 {
-    public function __construct()
-    {
-    }
+    public function __construct() {}
 }

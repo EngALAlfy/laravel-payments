@@ -7,36 +7,35 @@ use Illuminate\Http\Request;
 class KashierService
 {
     private string $baseUrl;
+
     private string $merchantId;
+
     private string $secret;
+
     private string $mode;
+
     private string $redirectUrl;
+
     private string $currency;
+
     private string $display;
+
     private string $redirectMethod;
 
-    /**
-     */
     public function __construct()
     {
-        $this->baseUrl = "https://checkout.kashier.io";
-        $this->merchantId = settings("kashier_merchant_id" , "");
-        $this->secret = settings("kashier_api_key" , "");
-        $this->mode = "live";
-        $this->redirectUrl = route("services.orders.orderKashierPayment");
-        $this->currency = "EGP";
-        $this->display = "ar";
-        $this->redirectMethod = "get";
+        $this->baseUrl = 'https://checkout.kashier.io';
+        $this->merchantId = settings('kashier_merchant_id', '');
+        $this->secret = settings('kashier_api_key', '');
+        $this->mode = 'live';
+        $this->redirectUrl = route('services.orders.orderKashierPayment');
+        $this->currency = 'EGP';
+        $this->display = 'ar';
+        $this->redirectMethod = 'get';
     }
 
-
     /**
-     * @param string $orderId
-     * @param float $amount
-     * @param string $metaData
-     * @param string $paymentRequestId
-     * @param string|null $serverWebhook
-     * @return string
+     * @param  string|null  $serverWebhook
      */
     public function getPayNowUrl(
         string $orderId,
@@ -44,11 +43,11 @@ class KashierService
         string $metaData,
         string $paymentRequestId,
     ): string {
-        if(strtoupper(settings("currency_name" , "EGP")) !== "EGP"){
-            $amount = settings("currency_rate" , 1) * $amount;
+        if (strtoupper(settings('currency_name', 'EGP')) !== 'EGP') {
+            $amount = settings('currency_rate', 1) * $amount;
         }
 
-        $hash = $this->generateKashierOrderHash($orderId,$amount);
+        $hash = $this->generateKashierOrderHash($orderId, $amount);
 
         return sprintf(
             '%s/?merchantId=%s&orderId=%s&amount=%s&currency=%s&hash=%s&mode=%s&merchantRedirect=%s&metaData=%s&paymentRequestId=%s&redirectMethod=%s&display=%s',
@@ -67,22 +66,22 @@ class KashierService
         );
     }
 
-
     private function generateKashierOrderHash(string $orderId, $amount): string
     {
-        $path = "/?payment=".$this->merchantId.".".$orderId.".".$amount.".".$this->currency;
-        return hash_hmac( 'sha256' , $path , $this->secret ,false);
+        $path = '/?payment='.$this->merchantId.'.'.$orderId.'.'.$amount.'.'.$this->currency;
+
+        return hash_hmac('sha256', $path, $this->secret, false);
     }
 
     public function verifySignature(Request $request): bool
     {
-        $queryString = "";
+        $queryString = '';
 
         foreach ($request->query() as $key => $value) {
-            if ($key === "signature" || $key === "mode") {
+            if ($key === 'signature' || $key === 'mode') {
                 continue;
             }
-            $queryString .= "&" . $key . "=" . $value;
+            $queryString .= '&'.$key.'='.$value;
         }
 
         $queryString = ltrim($queryString, '&');
@@ -91,5 +90,4 @@ class KashierService
 
         return $signature === $request->query('signature');
     }
-
 }

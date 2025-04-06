@@ -4,7 +4,5 @@ namespace EngAlalfy\LaravelPayments\Services;
 
 class OPayService
 {
-    public function __construct()
-    {
-    }
+    public function __construct() {}
 }
