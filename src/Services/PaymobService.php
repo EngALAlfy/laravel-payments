@@ -2,17 +2,18 @@
 
 namespace EngAlalfy\LaravelPayments\Services;
 
+use EngAlalfy\LaravelPayments\Interfaces\PaymentGatewayInterface;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
-class PaymobService
+class PaymobService implements PaymentGatewayInterface
 {
-    private string $baseUrl = 'https://accept.paymob.com/v1';
+    private string $baseUrl;
 
-    private string $checkoutUrl = 'https://accept.paymob.com/unifiedcheckout';
+    private string $checkoutUrl;
 
     private string $publicKey;
 
@@ -22,155 +23,85 @@ class PaymobService
 
     public function __construct()
     {
-        $this->publicKey = config('services.paymob.public_key');
-        $secretKey = config('services.paymob.secret_key');
-        $this->hmacSecret = config('services.paymob.hmac_secret');
+        $this->baseUrl = config('payments.paymob.base_url', 'https://accept.paymob.com/v1');
+        $this->checkoutUrl = config('payments.paymob.checkout_url', 'https://accept.paymob.com/unifiedcheckout');
+        $this->publicKey = config('payments.paymob.public_key');
+        $secretKey = config('payments.paymob.secret_key');
+        $this->hmacSecret = config('payments.paymob.hmac_secret');
         $this->config = [
             'headers' => [
-                'Authorization' => 'Token '.$secretKey,
+                'Authorization' => 'Token ' . $secretKey,
                 'Content-Type' => 'application/json',
             ],
         ];
     }
 
+
     /**
-     * Create a payment intention with structured data
+     * Initialize a payment process by creating a payment intention
      *
-     * @param  float  $amount  Total amount of the transaction
-     * @param  array  $items  Array of items with their details
-     * @param  array  $billingData  Customer billing information
-     * @param  string  $currency  Currency code (default: EGP)
-     * @param  array|null  $customer  Customer details (optional)
-     * @param  array|null  $extras  Additional data (optional)
-     * @return array Response from Paymob
+     * @param string $orderId The unique identifier for the order
+     * @param float $amount The total amount for the transaction
+     * @param array $data Additional data required for payment initialization
+     * @return array|string The response from the payment intention creation
+     * @throws RuntimeException If payment intention creation fails
      */
-    public function createPaymentIntention(
-        mixed $methodId,
-        mixed $id,
-        float $amount,
-        array $items,
-        array $billingData,
-        string $currency = 'EGP',
-        ?array $customer = null,
-        ?array $extras = null,
-        bool $app = false,
-    ): array {
-        $this->validateBillingData($billingData);
-        $this->validateItems($items);
+    public function initializePayment(string $orderId, float $amount, array $data): array|string
+    {
+        // Extract necessary data for payment intention
+        $methodId = $data['method_id'] ?? null;
+        $items = $data['items'] ?? [];
+        $billingData = $data['billing_data'] ?? [];
+        $currency = $data['currency'] ?? 'EGP';
+        $customer = $data['customer'] ?? null;
+        $extras = $data['extras'] ?? null;
+        $app = $data['app'] ?? false;
 
-        try {
-            $payload = [
-                'amount' => $amount * 100,
-                'currency' => $currency,
-                'payment_methods' => [(int) $methodId],
-                'items' => $items,
-                'billing_data' => [
-                    'apartment' => $billingData['apartment'],
-                    'floor' => $billingData['floor'],
-                    'first_name' => $billingData['first_name'],
-                    'last_name' => $billingData['last_name'],
-                    'street' => $billingData['street'],
-                    'building' => $billingData['building'],
-                    'phone_number' => $billingData['phone_number'],
-                    'shipping_method' => $billingData['shipping_method'] ?? '',
-                    'postal_code' => $billingData['postal_code'] ?? '',
-                    'city' => $billingData['city'],
-                    'country' => $billingData['country'],
-                    'state' => $billingData['state'],
-                    'email' => $billingData['email'],
-                ],
-                'customer' => $customer,
-                'extras' => $extras,
-                'redirection_url' => route('store.paymob.handle-callback', $app ? ['app' => true] : []),
-                'special_reference' => $id,
-            ];
-            $response = Http::withHeaders($this->config['headers'])
-                ->post($this->baseUrl.'/intention/', $payload);
-            if (! $response->successful()) {
-                throw new RuntimeException('Failed to create payment intention: '.$response->body());
-            }
-
-            return $response->json();
-        } catch (Exception $e) {
-            throw new RuntimeException('Error creating payment intention: '.$e->getMessage());
+        // Validate required data
+        if (!$methodId || empty($items) || empty($billingData)) {
+            throw new RuntimeException('Missing required data for payment initialization');
         }
+
+        // Create payment intention
+        return $this->createPaymentIntention(
+            $methodId,
+            $orderId,
+            $amount,
+            $items,
+            $billingData,
+            $currency,
+            $customer,
+            $extras,
+            $app
+        );
     }
 
     /**
      * Generate the checkout URL for client-side redirection
      *
-     * @param  string  $clientSecret  Client secret from payment intention response
+     * @param mixed $data Client secret from payment intention response
      * @return string The complete checkout URL
      */
-    public function getCheckoutUrl(string $clientSecret): string
+    public function getCheckoutUrl(mixed $data): string
     {
-        return $this->checkoutUrl.'?'.http_build_query([
-            'publicKey' => $this->publicKey,
-            'clientSecret' => $clientSecret,
-        ]);
-    }
-
-    /**
-     * Validate billing data structure
-     *
-     * @throws RuntimeException
-     */
-    private function validateBillingData(array $billingData): void
-    {
-        $requiredFields = [
-            'first_name',
-            'last_name',
-            'email',
-            'phone_number',
-            'street',
-            'building',
-            'apartment',
-            'floor',
-            'city',
-            'state',
-            'country',
-        ];
-
-        foreach ($requiredFields as $field) {
-            if (! isset($billingData[$field])) {
-                throw new RuntimeException("Missing required billing field: {$field}");
-            }
-        }
-    }
-
-    /**
-     * Validate items structure
-     *
-     * @throws RuntimeException
-     */
-    private function validateItems(array $items): void
-    {
-        if (empty($items)) {
-            throw new RuntimeException('At least one item is required');
-        }
-
-        foreach ($items as $item) {
-            $requiredFields = ['name', 'amount', 'description', 'quantity'];
-            foreach ($requiredFields as $field) {
-                if (! isset($item[$field])) {
-                    throw new RuntimeException("Missing required item field: {$field}");
-                }
-            }
-        }
+        return $this->checkoutUrl . '?' . http_build_query([
+                'publicKey' => $this->publicKey,
+                'clientSecret' => $data,
+            ]);
     }
 
     /**
      * Verify the callback of the payment by HMAC
      */
-    public function verify(Request $request): array
+    public function verifyCallback(Request $request): array
     {
         try {
-            if (! $this->hmacSecret) {
+            if (!$this->hmacSecret) {
                 throw new RuntimeException('HMAC secret is not configured');
             }
 
             $receivedHmac = $request->query('hmac');
-            if (! $receivedHmac) {
+            if (!$receivedHmac) {
                 throw new RuntimeException('HMAC is missing from request');
             }
 
@@ -220,7 +151,7 @@ class PaymobService
                 'calculated_hmac' => $calculatedHmac,
             ]);
 
-            if (! hash_equals($calculatedHmac, $receivedHmac)) {
+            if (!hash_equals($calculatedHmac, $receivedHmac)) {
                 throw new RuntimeException('HMAC verification failed');
             }
 
@@ -244,4 +175,123 @@ class PaymobService
             ];
         }
     }
+
+    public function getPriceFactor(mixed $paymentMethod): float
+    {
+        return 1.0; // Default price factor
+    }
+
+    /**
+     * Create a payment intention with structured data
+     *
+     * @param float $amount Total amount of the transaction
+     * @param array $items Array of items with their details
+     * @param array $billingData Customer billing information
+     * @param string $currency Currency code (default: EGP)
+     * @param array|null $customer Customer details (optional)
+     * @param array|null $extras Additional data (optional)
+     * @return array Response from Paymob
+     */
+    private function createPaymentIntention(
+        mixed  $methodId,
+        mixed  $id,
+        float  $amount,
+        array  $items,
+        array  $billingData,
+        string $currency = 'EGP',
+        ?array $customer = null,
+        ?array $extras = null,
+        bool   $app = false,
+    ): array
+    {
+        $this->validateBillingData($billingData);
+        $this->validateItems($items);
+
+        try {
+            $payload = [
+                'amount' => $amount * 100,
+                'currency' => $currency,
+                'payment_methods' => [(int)$methodId],
+                'items' => $items,
+                'billing_data' => [
+                    'apartment' => $billingData['apartment'],
+                    'floor' => $billingData['floor'],
+                    'first_name' => $billingData['first_name'],
+                    'last_name' => $billingData['last_name'],
+                    'street' => $billingData['street'],
+                    'building' => $billingData['building'],
+                    'phone_number' => $billingData['phone_number'],
+                    'shipping_method' => $billingData['shipping_method'] ?? '',
+                    'postal_code' => $billingData['postal_code'] ?? '',
+                    'city' => $billingData['city'],
+                    'country' => $billingData['country'],
+                    'state' => $billingData['state'],
+                    'email' => $billingData['email'],
+                ],
+                'customer' => $customer,
+                'extras' => $extras,
+                'redirection_url' => route('store.paymob.handle-callback', $app ? ['app' => true] : []),
+                'special_reference' => $id,
+            ];
+            $response = Http::withHeaders($this->config['headers'])
+                ->post($this->baseUrl . '/intention/', $payload);
+            if (!$response->successful()) {
+                throw new RuntimeException('Failed to create payment intention: ' . $response->body());
+            }
+
+            return $response->json();
+        } catch (Exception $e) {
+            throw new RuntimeException('Error creating payment intention: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Validate billing data structure
+     *
+     * @throws RuntimeException
+     */
+    private function validateBillingData(array $billingData): void
+    {
+        $requiredFields = [
+            'first_name',
+            'last_name',
+            'email',
+            'phone_number',
+            'street',
+            'building',
+            'apartment',
+            'floor',
+            'city',
+            'state',
+            'country',
+        ];
+
+        foreach ($requiredFields as $field) {
+            if (!isset($billingData[$field])) {
+                throw new RuntimeException("Missing required billing field: {$field}");
+            }
+        }
+    }
+
+    /**
+     * Validate items structure
+     *
+     * @throws RuntimeException
+     */
+    private function validateItems(array $items): void
+    {
+        if (empty($items)) {
+            throw new RuntimeException('At least one item is required');
+        }
+
+        foreach ($items as $item) {
+            $requiredFields = ['name', 'amount', 'description', 'quantity'];
+            foreach ($requiredFields as $field) {
+                if (!isset($item[$field])) {
+                    throw new RuntimeException("Missing required item field: {$field}");
+                }
+            }
+        }
+    }
+
 }
