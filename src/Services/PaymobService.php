@@ -30,20 +30,20 @@ class PaymobService implements PaymentGatewayInterface
         $this->hmacSecret = config('payments.paymob.hmac_secret');
         $this->config = [
             'headers' => [
-                'Authorization' => 'Token ' . $secretKey,
+                'Authorization' => 'Token '.$secretKey,
                 'Content-Type' => 'application/json',
             ],
         ];
     }
 
-
     /**
      * Initialize a payment process by creating a payment intention
      *
-     * @param string $orderId The unique identifier for the order
-     * @param float $amount The total amount for the transaction
-     * @param array $data Additional data required for payment initialization
+     * @param  string  $orderId  The unique identifier for the order
+     * @param  float  $amount  The total amount for the transaction
+     * @param  array  $data  Additional data required for payment initialization
      * @return array|string The response from the payment intention creation
+     *
      * @throws RuntimeException If payment intention creation fails
      */
     public function initializePayment(string $orderId, float $amount, array $data): array|string
@@ -58,7 +58,7 @@ class PaymobService implements PaymentGatewayInterface
         $app = $data['app'] ?? false;
 
         // Validate required data
-        if (!$methodId || empty($items) || empty($billingData)) {
+        if (! $methodId || empty($items) || empty($billingData)) {
             throw new RuntimeException('Missing required data for payment initialization');
         }
 
@@ -79,15 +79,15 @@ class PaymobService implements PaymentGatewayInterface
     /**
      * Generate the checkout URL for client-side redirection
      *
-     * @param mixed $data Client secret from payment intention response
+     * @param  mixed  $data  Client secret from payment intention response
      * @return string The complete checkout URL
      */
     public function getCheckoutUrl(mixed $data): string
     {
-        return $this->checkoutUrl . '?' . http_build_query([
-                'publicKey' => $this->publicKey,
-                'clientSecret' => $data,
-            ]);
+        return $this->checkoutUrl.'?'.http_build_query([
+            'publicKey' => $this->publicKey,
+            'clientSecret' => $data,
+        ]);
     }
 
     /**
@@ -96,12 +96,12 @@ class PaymobService implements PaymentGatewayInterface
     public function verifyCallback(Request $request): array
     {
         try {
-            if (!$this->hmacSecret) {
+            if (! $this->hmacSecret) {
                 throw new RuntimeException('HMAC secret is not configured');
             }
 
             $receivedHmac = $request->query('hmac');
-            if (!$receivedHmac) {
+            if (! $receivedHmac) {
                 throw new RuntimeException('HMAC is missing from request');
             }
 
@@ -151,7 +151,7 @@ class PaymobService implements PaymentGatewayInterface
                 'calculated_hmac' => $calculatedHmac,
             ]);
 
-            if (!hash_equals($calculatedHmac, $receivedHmac)) {
+            if (! hash_equals($calculatedHmac, $receivedHmac)) {
                 throw new RuntimeException('HMAC verification failed');
             }
 
@@ -184,26 +184,25 @@ class PaymobService implements PaymentGatewayInterface
     /**
      * Create a payment intention with structured data
      *
-     * @param float $amount Total amount of the transaction
-     * @param array $items Array of items with their details
-     * @param array $billingData Customer billing information
-     * @param string $currency Currency code (default: EGP)
-     * @param array|null $customer Customer details (optional)
-     * @param array|null $extras Additional data (optional)
+     * @param  float  $amount  Total amount of the transaction
+     * @param  array  $items  Array of items with their details
+     * @param  array  $billingData  Customer billing information
+     * @param  string  $currency  Currency code (default: EGP)
+     * @param  array|null  $customer  Customer details (optional)
+     * @param  array|null  $extras  Additional data (optional)
      * @return array Response from Paymob
      */
     private function createPaymentIntention(
-        mixed  $methodId,
-        mixed  $id,
-        float  $amount,
-        array  $items,
-        array  $billingData,
+        mixed $methodId,
+        mixed $id,
+        float $amount,
+        array $items,
+        array $billingData,
         string $currency = 'EGP',
         ?array $customer = null,
         ?array $extras = null,
-        bool   $app = false,
-    ): array
-    {
+        bool $app = false,
+    ): array {
         $this->validateBillingData($billingData);
         $this->validateItems($items);
 
@@ -211,7 +210,7 @@ class PaymobService implements PaymentGatewayInterface
             $payload = [
                 'amount' => $amount * 100,
                 'currency' => $currency,
-                'payment_methods' => [(int)$methodId],
+                'payment_methods' => [(int) $methodId],
                 'items' => $items,
                 'billing_data' => [
                     'apartment' => $billingData['apartment'],
@@ -234,14 +233,14 @@ class PaymobService implements PaymentGatewayInterface
                 'special_reference' => $id,
             ];
             $response = Http::withHeaders($this->config['headers'])
-                ->post($this->baseUrl . '/intention/', $payload);
-            if (!$response->successful()) {
-                throw new RuntimeException('Failed to create payment intention: ' . $response->body());
+                ->post($this->baseUrl.'/intention/', $payload);
+            if (! $response->successful()) {
+                throw new RuntimeException('Failed to create payment intention: '.$response->body());
             }
 
             return $response->json();
         } catch (Exception $e) {
-            throw new RuntimeException('Error creating payment intention: ' . $e->getMessage());
+            throw new RuntimeException('Error creating payment intention: '.$e->getMessage());
         }
     }
 
@@ -267,7 +266,7 @@ class PaymobService implements PaymentGatewayInterface
         ];
 
         foreach ($requiredFields as $field) {
-            if (!isset($billingData[$field])) {
+            if (! isset($billingData[$field])) {
                 throw new RuntimeException("Missing required billing field: {$field}");
             }
         }
@@ -287,11 +286,10 @@ class PaymobService implements PaymentGatewayInterface
         foreach ($items as $item) {
             $requiredFields = ['name', 'amount', 'description', 'quantity'];
             foreach ($requiredFields as $field) {
-                if (!isset($item[$field])) {
+                if (! isset($item[$field])) {
                     throw new RuntimeException("Missing required item field: {$field}");
                 }
             }
         }
     }
-
 }

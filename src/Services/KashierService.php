@@ -9,12 +9,19 @@ use RuntimeException;
 class KashierService implements PaymentGatewayInterface
 {
     private string $baseUrl;
+
     private string $merchantId;
+
     private string $secret;
+
     private string $mode;
+
     private string $redirectUrl;
+
     private string $currency;
+
     private string $display;
+
     private string $redirectMethod;
 
     public function __construct()
@@ -32,10 +39,11 @@ class KashierService implements PaymentGatewayInterface
     /**
      * Initialize a payment process by generating a payment URL.
      *
-     * @param string $orderId The unique identifier for the order.
-     * @param float $amount The total amount for the transaction.
-     * @param array $data Additional data required for payment initialization.
+     * @param  string  $orderId  The unique identifier for the order.
+     * @param  float  $amount  The total amount for the transaction.
+     * @param  array  $data  Additional data required for payment initialization.
      * @return string The payment URL to redirect the user to.
+     *
      * @throws RuntimeException If payment URL generation fails.
      */
     public function initializePayment(string $orderId, float $amount, array $data): string
@@ -58,7 +66,7 @@ class KashierService implements PaymentGatewayInterface
     /**
      * Get the checkout URL for client-side redirection.
      *
-     * @param mixed $data Data required to generate the URL.
+     * @param  mixed  $data  Data required to generate the URL.
      * @return string The checkout URL.
      */
     public function getCheckoutUrl(mixed $data): string
@@ -69,7 +77,7 @@ class KashierService implements PaymentGatewayInterface
     /**
      * Verify the callback signature from Kashier to ensure it is valid.
      *
-     * @param Request $request The HTTP request containing the callback data.
+     * @param  Request  $request  The HTTP request containing the callback data.
      * @return bool True if the signature is valid, false otherwise.
      */
     public function verifyCallback(Request $request): bool
@@ -93,7 +101,7 @@ class KashierService implements PaymentGatewayInterface
     /**
      * Get the price factor based on the payment method.
      *
-     * @param mixed $paymentMethod The payment method to evaluate.
+     * @param  mixed  $paymentMethod  The payment method to evaluate.
      * @return float The price factor.
      */
     public function getPriceFactor(mixed $paymentMethod): float
@@ -104,10 +112,10 @@ class KashierService implements PaymentGatewayInterface
     /**
      * Generate a payment URL for the Kashier service.
      *
-     * @param string $orderId The unique identifier for the order.
-     * @param float $amount The total amount for the transaction.
-     * @param string $metaData Additional metadata for the payment.
-     * @param string $paymentRequestId The payment request identifier.
+     * @param  string  $orderId  The unique identifier for the order.
+     * @param  float  $amount  The total amount for the transaction.
+     * @param  string  $metaData  Additional metadata for the payment.
+     * @param  string  $paymentRequestId  The payment request identifier.
      * @return string The generated payment URL.
      */
     private function getPayNowUrl(
@@ -138,8 +146,8 @@ class KashierService implements PaymentGatewayInterface
     /**
      * Generate a hash for the Kashier order to ensure data integrity.
      *
-     * @param string $orderId The unique identifier for the order.
-     * @param float $amount The total amount for the transaction.
+     * @param  string  $orderId  The unique identifier for the order.
+     * @param  float  $amount  The total amount for the transaction.
      * @return string The generated hash.
      */
     private function generateKashierOrderHash(string $orderId, $amount): string
