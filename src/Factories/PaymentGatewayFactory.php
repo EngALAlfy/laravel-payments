@@ -24,8 +24,8 @@ class PaymentGatewayFactory
     public static function create(GatewayType $gatewayType): PaymentGatewayInterface
     {
         return match ($gatewayType) {
-            GatewayType::PAYMOB => new PaymobService(),
-            GatewayType::KASHIER => new KashierService(),
+            GatewayType::PAYMOB => new PaymobService,
+            GatewayType::KASHIER => new KashierService,
             default => throw new InvalidArgumentException("Unsupported payment gateway: {$gatewayType->value}")
         };
     }
