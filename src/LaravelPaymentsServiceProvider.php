@@ -2,7 +2,6 @@
 
 namespace EngAlalfy\LaravelPayments;
 
-use EngAlalfy\LaravelPayments\Commands\LaravelPaymentsCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -17,9 +16,6 @@ class LaravelPaymentsServiceProvider extends PackageServiceProvider
          */
         $package
             ->name('laravel-payments')
-            ->hasConfigFile()
-            ->hasViews()
-            ->hasMigration('create_laravel_payments_table')
-            ->hasCommand(LaravelPaymentsCommand::class);
+            ->hasConfigFile();
     }
 }

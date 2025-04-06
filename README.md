@@ -1,19 +1,47 @@
-# A unified Laravel package for multiple payment gateways (Paymob, Kashier, etc.) with easy integration and extensibility.
+
+# Laravel Payments
+
+A unified Laravel package for multiple payment gateways (Paymob, Kashier, etc.) with easy integration and extensibility. Simplify your payment processing with a consistent API across different payment providers.
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/engalalfy/laravel-payments.svg?style=flat-square)](https://packagist.org/packages/engalalfy/laravel-payments)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/engalalfy/laravel-payments/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/engalalfy/laravel-payments/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/engalalfy/laravel-payments/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/engalalfy/laravel-payments/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/engalalfy/laravel-payments.svg?style=flat-square)](https://packagist.org/packages/engalalfy/laravel-payments)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Issues](https://img.shields.io/github/issues/engalalfy/laravel-payments.svg?style=flat-square)](https://github.com/engalalfy/laravel-payments/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/engalalfy/laravel-payments.svg?style=flat-square)](https://github.com/engalalfy/laravel-payments/pulls)
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+## Features
 
-## Support us
+- **Unified API**: Work with multiple payment gateways using a consistent interface
+- **Extensible**: Easily add support for new payment gateways
+- **Provider Agnostic**: Switch between payment providers without changing your application code
+- **Event Driven**: Leverage Laravel's event system for payment notifications
+- **Thorough Documentation**: Well-documented API with examples for each supported gateway
+- **Robust Testing**: Comprehensive test suite for reliability
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/laravel-payments.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/laravel-payments)
+## Package Structure
 
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+```
+laravel-payments/
+├── config/                  # Configuration files
+├── database/
+│   └── migrations/          # Database migrations
+├── resources/
+│   └── views/               # Views for payment pages if needed
+├── src/
+│   ├── Facades/             # Laravel Facades
+│   ├── Gateways/            # Payment gateway implementations
+│   │   ├── Paymob/
+│   │   ├── Kashier/
+│   │   └── ...
+│   ├── Contracts/           # Interfaces defining the API
+│   ├── Models/              # Eloquent models
+│   ├── Events/              # Payment-related events
+│   ├── Exceptions/          # Custom exceptions
+│   └── LaravelPayments.php  # Main package class
+└── tests/                   # Test suite
+```
 
 ## Installation
 
@@ -23,40 +51,50 @@ You can install the package via composer:
 composer require engalalfy/laravel-payments
 ```
 
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag="laravel-payments-migrations"
-php artisan migrate
-```
-
-You can publish the config file with:
+After installation, publish the configuration and migrations:
 
 ```bash
 php artisan vendor:publish --tag="laravel-payments-config"
 ```
 
-This is the contents of the published config file:
+## Configuration
+
+Configure your payment gateways in the published config file:
 
 ```php
+// config/laravel-payments.php
+
 return [
+    'default' => env('PAYMENT_GATEWAY', 'paymob'),
+    
+    'gateways' => [
+        'paymob' => [
+            'api_key' => env('PAYMOB_API_KEY'),
+            'integration_id' => env('PAYMOB_INTEGRATION_ID'),
+            'iframe_id' => env('PAYMOB_IFRAME_ID'),
+            // Additional Paymob configuration...
+        ],
+        
+        'kashier' => [
+            'merchant_id' => env('KASHIER_MERCHANT_ID'),
+            'api_key' => env('KASHIER_API_KEY'),
+            // Additional Kashier configuration...
+        ],
+        
+        // Additional payment gateways...
+    ],
+    
+    'currency' => env('PAYMENT_CURRENCY', 'EGP'),
+    'callback_url' => env('PAYMENT_CALLBACK_URL', '/payment/callback'),
 ];
 ```
 
-Optionally, you can publish the views using
+## Basic Usage
 
-```bash
-php artisan vendor:publish --tag="laravel-payments-views"
-```
-
-## Usage
-
-```php
-$laravelPayments = new EngAlalfy\LaravelPayments();
-echo $laravelPayments->echoPhrase('Hello, EngAlalfy!');
-```
 
 ## Testing
+
+The package comes with a comprehensive test suite:
 
 ```bash
 composer test
@@ -68,11 +106,25 @@ Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed re
 
 ## Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+Please see [CONTRIBUTING](CONTRIBUTING.md) for details on how to contribute to this package.
+
+### Reporting Issues
+
+If you encounter any issues, please [open an issue](https://github.com/engalalfy/laravel-payments/issues/new) on GitHub.
+
+### Pull Requests
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ## Security Vulnerabilities
 
 Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+
+## Support the Development
+
+If you find this package helpful, consider supporting its development:
+
+[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/islamalalfy)
 
 ## Credits
 
