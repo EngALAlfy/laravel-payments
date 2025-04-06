@@ -2,7 +2,10 @@
 
 namespace EngAlalfy\LaravelPayments\Factories;
 
+use EngAlalfy\LaravelPayments\Enums\GatewayType;
 use EngAlalfy\LaravelPayments\Interfaces\PaymentGatewayInterface;
+use EngAlalfy\LaravelPayments\Services\KashierService;
+use EngAlalfy\LaravelPayments\Services\PaymobService;
 use InvalidArgumentException;
 
 /**
@@ -14,17 +17,16 @@ class PaymentGatewayFactory
     /**
      * Create a payment gateway instance
      *
-     * @param  string  $gatewayType  The type of payment gateway
+     * @param  GatewayType  $gatewayType  The type of payment gateway
      *
      * @throws InvalidArgumentException If the gateway type is not supported
      */
-    public static function create(string $gatewayType): PaymentGatewayInterface
+    public static function create(GatewayType $gatewayType): PaymentGatewayInterface
     {
         return match ($gatewayType) {
-            'paymob' => new PaymobGateway,
-            'kashier' => new KashierGateway,
-            // Add new gateways here without modifying existing code
-            default => throw new InvalidArgumentException("Unsupported payment gateway: {$gatewayType}")
+            GatewayType::PAYMOB => new PaymobService(),
+            GatewayType::KASHIER => new KashierService(),
+            default => throw new InvalidArgumentException("Unsupported payment gateway: {$gatewayType->value}")
         };
     }
 }

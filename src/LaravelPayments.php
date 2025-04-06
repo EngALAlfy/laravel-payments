@@ -2,21 +2,23 @@
 
 namespace EngAlalfy\LaravelPayments;
 
+use EngAlalfy\LaravelPayments\Enums\GatewayType;
 use EngAlalfy\LaravelPayments\Factories\PaymentGatewayFactory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class LaravelPayments
 {
     /**
      * Process a payment using the specified gateway
      *
-     * @param  string  $gatewayType  The type of payment gateway to use
+     * @param  GatewayType  $gatewayType  The type of payment gateway to use
      * @param  string  $orderId  Order identifier
      * @param  float  $amount  Payment amount
      * @param  array  $data  Additional data required for the payment
      * @return array Payment result including checkout URL
      */
-    public function processPayment(string $gatewayType, string $orderId, float $amount, array $data): array
+    public function processPayment(GatewayType $gatewayType, string $orderId, float $amount, array $data): array
     {
         try {
             // Get the appropriate gateway
@@ -26,9 +28,7 @@ class LaravelPayments
             $result = $gateway->initializePayment($orderId, $amount, $data);
 
             // Generate checkout URL
-            $checkoutUrl = $gateway->getCheckoutUrl(
-                $gatewayType === 'paymob' ? $result['client_secret'] : $result
-            );
+            $checkoutUrl = $gateway->getCheckoutUrl($result);
 
             return [
                 'success' => true,
@@ -37,7 +37,7 @@ class LaravelPayments
                 'gateway' => $gatewayType,
             ];
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Payment processing failed', [
+            Log::error('Payment processing failed', [
                 'gateway' => $gatewayType,
                 'order_id' => $orderId,
                 'error' => $e->getMessage(),
@@ -55,18 +55,16 @@ class LaravelPayments
     /**
      * Verify a payment callback
      *
-     * @param  string  $gatewayType  The type of payment gateway
+     * @param  GatewayType  $gatewayType  The type of payment gateway
      * @param  Request  $request  The request containing callback data
      * @return array Verification result
      */
-    public function verifyPayment(string $gatewayType, Request $request): array
+    public function verifyPayment(GatewayType $gatewayType, Request $request): array
     {
         try {
-            $gateway = PaymentGatewayFactory::create($gatewayType);
-
-            return $gateway->verifyCallback($request);
+            return PaymentGatewayFactory::create($gatewayType)->verifyCallback($request);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Payment verification failed', [
+            Log::error('Payment verification failed', [
                 'gateway' => $gatewayType,
                 'error' => $e->getMessage(),
             ]);

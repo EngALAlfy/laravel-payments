@@ -81,7 +81,7 @@ class PaymobService implements PaymentGatewayInterface
     {
         return $this->checkoutUrl . '?' . http_build_query([
                 'publicKey' => $this->publicKey,
-                'clientSecret' => $data,
+                'clientSecret' => $data["client_secret"] ?? '',
             ]);
     }
 
