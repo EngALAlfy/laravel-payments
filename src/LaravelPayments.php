@@ -5,7 +5,8 @@ namespace EngAlalfy\LaravelPayments;
 use EngAlalfy\LaravelPayments\Factories\PaymentGatewayFactory;
 use Illuminate\Http\Request;
 
-class LaravelPayments {
+class LaravelPayments
+{
     /**
      * Process a payment using the specified gateway
      *
