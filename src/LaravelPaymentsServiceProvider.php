@@ -2,9 +2,9 @@
 
 namespace EngAlalfy\LaravelPayments;
 
+use EngAlalfy\LaravelPayments\Commands\LaravelPaymentsCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use EngAlalfy\LaravelPayments\Commands\LaravelPaymentsCommand;
 
 class LaravelPaymentsServiceProvider extends PackageServiceProvider
 {
