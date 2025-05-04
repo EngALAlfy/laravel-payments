@@ -1,0 +1,117 @@
+name: "Make new release"
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Only run if the PR was merged (not just closed)
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0  # Fetch all history to get commit messages
+
+      - name: Get PR description
+        id: pr_data
+        run: |
+          # Store PR data in files instead of directly in env vars to avoid shell interpretation
+          echo '${{ github.event.pull_request.body }}' > pr_description.txt
+          echo '${{ github.event.pull_request.title }}' > pr_title.txt
+
+          # Read the files and set multiline env vars safely
+          echo "PR_DESCRIPTION<<EOF" >> $GITHUB_ENV
+          cat pr_description.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          # For single line title, we can use quotes
+          PR_TITLE=$(cat pr_title.txt)
+          echo "PR_TITLE='$PR_TITLE'" >> $GITHUB_ENV
+
+      - name: Get commit messages
+        id: commit_messages
+        run: |
+          # Get all commits from the PR
+          COMMIT_MESSAGES=$(git log ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --pretty=format:"- %s")
+          echo "MESSAGES<<EOF" >> $GITHUB_ENV
+          echo "$COMMIT_MESSAGES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create release notes
+        id: release_notes
+        run: |
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "## ${{ env.PR_TITLE }}" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+
+          if [[ -n "${{ env.PR_DESCRIPTION }}" ]]; then
+            echo "### PR Description" >> $GITHUB_ENV
+            # Replace backticks with HTML entities if needed
+            DESCRIPTION="${{ env.PR_DESCRIPTION }}"
+            DESCRIPTION="${DESCRIPTION//\`/\\\`}"  # Escape backticks
+            echo "$DESCRIPTION" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+          fi
+
+          echo "### Commits" >> $GITHUB_ENV
+          echo "${{ env.MESSAGES }}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Determine new version
+        id: semver
+        run: |
+          # Fetch all tags
+          git fetch --tags
+
+          # Get the latest version tag with format vX.Y.Z
+          LATEST_TAG=$(git tag -l "v*.*.*" | sort -V | tail -n 1)
+
+          if [[ -z "$LATEST_TAG" ]]; then
+            # No existing tags found, start with v1.0.1
+            NEW_VERSION="v1.0.1"
+          else
+            # Extract the version components
+            IFS='.' read -r -a VERSION_PARTS <<< "${LATEST_TAG#v}"
+
+            MAJOR=${VERSION_PARTS[0]}
+            MINOR=${VERSION_PARTS[1]}
+            PATCH=${VERSION_PARTS[2]}
+
+            # Remove any leading zeros and convert to number
+            PATCH=$((10#$PATCH))
+
+            # Increment according to rules
+            if [[ $PATCH -ge 99 ]]; then
+              # When reaching v1.0.99, increment to v1.1.0
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            else
+              # Otherwise just increment patch
+              PATCH=$((PATCH + 1))
+            fi
+
+            NEW_VERSION="v$MAJOR.$MINOR.$PATCH"
+          fi
+
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "New version will be: $NEW_VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ env.VERSION }}
+          tag_name: ${{ env.VERSION }}
+          body: ${{ env.RELEASE_NOTES }}
+          draft: false
+          prerelease: false
