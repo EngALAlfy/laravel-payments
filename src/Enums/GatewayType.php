@@ -8,4 +8,6 @@ enum GatewayType: string
     case KASHIER = 'kashier';
     case FAWRY = 'fawry';
     case OPAY = 'opay';
+    case TELR = 'telr';
+
 }
