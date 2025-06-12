@@ -22,4 +22,14 @@ return [
         'display' => env('KASHIER_DISPLAY', 'ar'),
         'redirect_method' => env('KASHIER_REDIRECT_METHOD', 'get'),
     ],
+
+    'telr' => [
+        'merchant_id' => env('TELR_MERCHANT_ID', ''),
+        'api_key' => env('TELR_API_KEY', ''),
+        'test_mode' => env('TELR_TEST_MODE', false),
+        'api_url' => env('TELR_API_URL', 'https://secure.telr.com/gateway/order.json'),
+        'success_url' => env('TELR_SUCCESS_URL', ''),
+        'cancel_url' => env('TELR_CANCEL_URL', ''),
+        'decline_url' => env('TELR_DECLINE_URL', ''),
+    ],
 ];
