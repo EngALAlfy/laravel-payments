@@ -42,7 +42,7 @@ class TelrService implements PaymentGatewayInterface
      */
     public function initializePayment(string $orderId, float $amount, array $data): array|string
     {
-        $currency = $data['currency'] ?? 'USD';
+        $currency = config("app.currency" , 'USD');
         $description = $data['description'] ?? 'Payment for order '.$orderId;
         $customerData = $data['customer_data'] ?? [];
 
