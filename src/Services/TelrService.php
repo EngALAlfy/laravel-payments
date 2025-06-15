@@ -143,30 +143,34 @@ class TelrService implements PaymentGatewayInterface
     ): array {
         try {
             $paymentData = [
-                'ivp_method' => 'create',
-                'ivp_store' => $this->merchantId,
-                'ivp_authkey' => $this->apiKey,
-                'ivp_cart' => $orderId,
-                'ivp_test' => $this->testMode ? '1' : '0',
-                'ivp_amount' => $amount,
-                'ivp_currency' => $currency,
-                'ivp_desc' => $description,
-                'return_auth' => $this->successUrl,
-                'return_can' => $this->cancelUrl,
-                'return_decl' => $this->declineUrl,
+                'method' => 'create',
+                'store' => $this->merchantId,
+                'authkey' => $this->apiKey,
+                'order' => [
+                    'cartid' => $orderId,
+                    'test' => $this->testMode ? '1' : '0',
+                    'amount' => $amount,
+                    'currency' => $currency,
+                    'description' => $description,
+                ],
+                'return' => [
+                    'authorised' => $this->successUrl,
+                    'cancelled' => $this->cancelUrl,
+                    'declined' => $this->declineUrl,
+                ]
             ];
 
             // Add customer data if provided
             if (!empty($customerData['name'])) {
-                $paymentData['bill_fname'] = $customerData['name'];
+                $paymentData['bill']['fname'] = $customerData['name'];
             }
 
             if (!empty($customerData['email'])) {
-                $paymentData['bill_email'] = $customerData['email'];
+                $paymentData['bill']['email'] = $customerData['email'];
             }
 
             if (!empty($customerData['phone'])) {
-                $paymentData['bill_tel'] = $customerData['phone'];
+                $paymentData['bill']['phone'] = $customerData['phone'];
             }
 
             // Make API request to Telr
@@ -179,7 +183,7 @@ class TelrService implements PaymentGatewayInterface
             $result = $response->json();
 
             // Check if the payment URL was generated successfully
-            if (!isset($result['order']) || !isset($result['order']['url'])) {
+            if (!isset($result['order']['url'])) {
                 throw new RuntimeException('Invalid response from payment gateway');
             }
 
