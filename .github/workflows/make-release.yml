@@ -22,23 +22,6 @@ jobs:
         with:
           ref: main
           fetch-depth: 0  # Fetch all history to get commit messages
-
-      - name: Get PR description
-        id: pr_data
-        run: |
-          # Store PR data in files with escaped markdown
-          echo '${{ github.event.pull_request.body }}' | sed 's/```/\\`\\`\\`/g' > pr_description.txt
-          echo '${{ github.event.pull_request.title }}' | sed 's/```/\\`\\`\\`/g' > pr_title.txt
-
-          # Read the files and set multiline env vars safely
-          echo "PR_DESCRIPTION<<EOF" >> $GITHUB_ENV
-          cat pr_description.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-          # For single line title, escape any remaining special characters
-          PR_TITLE=$(cat pr_title.txt | sed 's/[_*~`]/\\&/g')
-          echo "PR_TITLE='$PR_TITLE'" >> $GITHUB_ENV
-
       - name: Get commit messages
         id: commit_messages
         run: |
