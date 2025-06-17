@@ -214,10 +214,12 @@ class TelrService implements PaymentGatewayInterface
     {
         try {
             $checkData = [
-                'ivp_method' => 'check',
-                'ivp_store' => $this->merchantId,
-                'ivp_authkey' => $this->apiKey,
-                'order_ref' => $reference,
+                'method' => 'check',
+                'store' => $this->merchantId,
+                'authkey' => $this->apiKey,
+                'order' => [
+                    'ref' => $reference,
+                ]
             ];
 
             $response = Http::post($this->apiUrl, $checkData);
@@ -236,7 +238,7 @@ class TelrService implements PaymentGatewayInterface
                 'success' => true,
                 'data' => $result['order'],
                 'status' => $result['order']['status']['code'] ?? null,
-                'is_paid' => ($result['order']['status']['code'] ?? '') === 'A',
+                'is_paid' => ($result['order']['status']['code'] ?? '') == 'A',
             ];
 
         } catch (Exception $e) {
