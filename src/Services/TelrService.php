@@ -77,7 +77,7 @@ class TelrService implements PaymentGatewayInterface
     public function verifyCallback(Request $request): array|bool
     {
         try {
-            $reference = $request->input('order_ref');
+            $reference = $request->input('OrderRef');
 
             if (empty($reference)) {
                 throw new RuntimeException('Order reference is missing from request');
