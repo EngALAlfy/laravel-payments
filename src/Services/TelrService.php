@@ -237,8 +237,9 @@ class TelrService implements PaymentGatewayInterface
             return [
                 'success' => true,
                 'data' => $result['order'],
-                'status' => $result['order']['status']['code'] ?? null,
-                'is_paid' => ($result['order']['status']['code'] ?? '') == 'A',
+                'status' => $result['order']['status']['text'] ?? null,
+                'is_paid' => ($result['order']['status']['code'] ?? '') == 3,
+                'transaction_paid' => ($result['order']['transaction']['status'] ?? '') == 'A',
             ];
 
         } catch (Exception $e) {
