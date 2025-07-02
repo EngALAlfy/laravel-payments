@@ -32,4 +32,9 @@ return [
         'cancel_url' => env('TELR_CANCEL_URL', ''),
         'decline_url' => env('TELR_DECLINE_URL', ''),
     ],
+
+    'fawaterak' => [
+        'api_url' => env('FAWATERAK_API_URL', 'https://staging.fawaterk.com/api/v2/'),
+        'token' => env('FAWATERAK_TOKEN'),
+    ],
 ];
