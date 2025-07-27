@@ -21,6 +21,24 @@ class FawaterakService implements PaymentGatewayInterface
     }
 
     /**
+     * @param $apiUrl
+     * @param $token
+     * @return FawaterakService
+     */
+    public function credentials($apiUrl = null, $token = null): FawaterakService
+    {
+        if ($apiUrl) {
+            $this->apiUrl = $apiUrl;
+        }
+
+        if ($token) {
+            $this->token = $token;
+        }
+
+        return $this;
+    }
+
+    /**
      * Fetch available payment methods from Fawaterak.
      *
      * @param string $orderId
