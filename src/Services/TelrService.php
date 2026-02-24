@@ -20,15 +20,32 @@ class TelrService implements PaymentGatewayInterface
     private string $cancelUrl;
     private string $declineUrl;
 
-    public function __construct()
+    public function __construct(?array $credential = null)
     {
-        $this->merchantId = config('payments.telr.merchant_id', '');
-        $this->apiKey = config('payments.telr.api_key', '');
-        $this->testMode = config('payments.telr.test_mode', false);
-        $this->apiUrl = config('payments.telr.api_url', 'https://secure.telr.com/gateway/order.json');
-        $this->successUrl = config('payments.telr.success_url', '');
-        $this->cancelUrl = config('payments.telr.cancel_url', '');
-        $this->declineUrl = config('payments.telr.decline_url', '');
+        $merchantId = data_get($credential, "merchant_id");
+        $apiKey = data_get($credential, "api_key");
+        $testMode = data_get($credential, "test_mode");
+        $apiUrl = data_get($credential, "api_url");
+        $successUrl = data_get($credential, "success_url");
+        $cancelUrl = data_get($credential, "cancel_url");
+        $declineUrl = data_get($credential, "decline_url");
+        if ($merchantId && $apiKey) {
+            $this->merchantId = $merchantId;
+            $this->apiKey = $apiKey;
+            $this->testMode = $testMode ?? false;
+            $this->apiUrl = $apiUrl ?? 'https://secure.telr.com/gateway/order.json';
+            $this->successUrl = $successUrl ?? '';
+            $this->cancelUrl = $cancelUrl ?? '';
+            $this->declineUrl = $declineUrl ?? '';
+        }else {
+            $this->merchantId = config('payments.telr.merchant_id', '');
+            $this->apiKey = config('payments.telr.api_key', '');
+            $this->testMode = config('payments.telr.test_mode', false);
+            $this->apiUrl = config('payments.telr.api_url', 'https://secure.telr.com/gateway/order.json');
+            $this->successUrl = config('payments.telr.success_url', '');
+            $this->cancelUrl = config('payments.telr.cancel_url', '');
+            $this->declineUrl = config('payments.telr.decline_url', '');
+        }
     }
 
     /**

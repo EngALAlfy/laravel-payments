@@ -14,16 +14,24 @@ class FawaterakService implements PaymentGatewayInterface
     private string $apiUrl;
     private string $token;
 
-    public function __construct()
+    public function __construct(?array $credential = null)
     {
-        $this->apiUrl = config('payments.fawaterak.api_url', 'https://staging.fawaterk.com/api/v2/');
-        $this->token = config('payments.fawaterak.token', '');
+        $apiUrl = data_get($credential, "api_url");
+        $token = data_get($credential, "token");
+        if ($apiUrl && $token) {
+            $this->apiUrl = $apiUrl;
+            $this->token = $token;
+        } else {
+            $this->apiUrl = config('payments.fawaterak.api_url', 'https://staging.fawaterk.com/api/v2/');
+            $this->token = config('payments.fawaterak.token', '');
+        }
     }
 
     /**
      * @param $apiUrl
      * @param $token
      * @return FawaterakService
+     * @deprecated Use constructor or set credentials in config/payments.php instead
      */
     public function credentials($apiUrl = null, $token = null): FawaterakService
     {
@@ -50,7 +58,7 @@ class FawaterakService implements PaymentGatewayInterface
     {
         try {
             $response = Http::withHeaders([
-                'Content-Type'  => 'application/json',
+                'Content-Type' => 'application/json',
                 'Authorization' => 'Bearer ' . $this->token,
             ])->get($this->apiUrl . 'getPaymentmethods');
 
@@ -142,56 +150,10 @@ class FawaterakService implements PaymentGatewayInterface
         }
     }
 
-
-    /**
-     * Verify callback (usually needs endpoint to handle Fawaterak notifications).
-     *
-     * @param Request $request
-     * @return array|bool
-     */
-    public function verifyCallback(Request $request): array|bool
-    {
-        // Since Fawaterak docs didn’t describe the callback verification yet,
-        // return basic log & data. You can implement when actual callback data arrives.
-
-        try {
-            Log::info('Fawaterak callback received', $request->all());
-
-            return [
-                'success' => true,
-                'data' => $request->all(),
-                'message' => 'Callback received (implement real verification later)',
-            ];
-
-        } catch (Exception $e) {
-            Log::error('Fawaterak verifyCallback failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * Get price factor (default 1.0).
-     *
-     * @param mixed $paymentMethod
-     * @return float
-     */
-    public function getPriceFactor(mixed $paymentMethod): float
-    {
-        // You could parse paymentMethod['commission'] to adjust price if you want
-        return 1.0;
-    }
-
     /**
      * Create an invoice / execute payment request to Fawaterak.
      *
-     * @param int   $paymentMethodId (from getPaymentMethods)
+     * @param int $paymentMethodId (from getPaymentMethods)
      * @param float $cartTotal
      * @param string $currency
      * @param string $invoiceNumber
@@ -202,19 +164,20 @@ class FawaterakService implements PaymentGatewayInterface
      * @return array
      */
     private function createInvoice(
-        int $paymentMethodId,
-        float $cartTotal,
+        int    $paymentMethodId,
+        float  $cartTotal,
         string $currency,
         string $invoiceNumber,
-        array $customerData,
-        array $cartItems,
-        array $redirectionUrls,
-        array $options = []
-    ): array {
+        array  $customerData,
+        array  $cartItems,
+        array  $redirectionUrls,
+        array  $options = []
+    ): array
+    {
         try {
             $payload = [
                 'payment_method_id' => $paymentMethodId,
-                'cartTotal' => (string) $cartTotal,
+                'cartTotal' => (string)$cartTotal,
                 'currency' => $currency,
                 'invoice_number' => $invoiceNumber,
                 'customer' => [
@@ -273,6 +236,51 @@ class FawaterakService implements PaymentGatewayInterface
                 'message' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Verify callback (usually needs endpoint to handle Fawaterak notifications).
+     *
+     * @param Request $request
+     * @return array|bool
+     */
+    public function verifyCallback(Request $request): array|bool
+    {
+        // Since Fawaterak docs didn’t describe the callback verification yet,
+        // return basic log & data. You can implement when actual callback data arrives.
+
+        try {
+            Log::info('Fawaterak callback received', $request->all());
+
+            return [
+                'success' => true,
+                'data' => $request->all(),
+                'message' => 'Callback received (implement real verification later)',
+            ];
+
+        } catch (Exception $e) {
+            Log::error('Fawaterak verifyCallback failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get price factor (default 1.0).
+     *
+     * @param mixed $paymentMethod
+     * @return float
+     */
+    public function getPriceFactor(mixed $paymentMethod): float
+    {
+        // You could parse paymentMethod['commission'] to adjust price if you want
+        return 1.0;
     }
 
 }

@@ -24,24 +24,43 @@ class KashierService implements PaymentGatewayInterface
 
     private string $redirectMethod;
 
-    public function __construct()
+    public function __construct(?array $credential = null)
     {
-        $this->baseUrl = config('payments.kashier.base_url', 'https://checkout.kashier.io');
-        $this->merchantId = config('payments.kashier.merchant_id', '');
-        $this->secret = config('payments.kashier.api_key', '');
-        $this->mode = config('payments.kashier.mode', 'live');
-        $this->redirectUrl = config('payments.kashier.redirect_url', null);
-        $this->currency = config('payments.kashier.currency', 'EGP');
-        $this->display = config('payments.kashier.display', 'ar');
-        $this->redirectMethod = config('payments.kashier.redirect_method', 'get');
+        $base_url = data_get($credential, "base_url");
+        $merchant_id = data_get($credential, "merchant_id");
+        $secret = data_get($credential, "api_key");
+        $mode = data_get($credential, "mode");
+        $redirectUrl = data_get($credential, "redirect_url");
+        $currency = data_get($credential, "currency");
+        $display = data_get($credential, "display");
+        $redirectMethod = data_get($credential, "redirect_method");
+        if ($base_url && $merchant_id && $secret) {
+            $this->baseUrl = $base_url;
+            $this->merchantId = $merchant_id;
+            $this->secret = $secret;
+            $this->mode = $mode;
+            $this->redirectUrl = $redirectUrl;
+            $this->currency = $currency;
+            $this->display = $display;
+            $this->redirectMethod = $redirectMethod;
+        } else {
+            $this->baseUrl = config('payments.kashier.base_url', 'https://checkout.kashier.io');
+            $this->merchantId = config('payments.kashier.merchant_id', '');
+            $this->secret = config('payments.kashier.api_key', '');
+            $this->mode = config('payments.kashier.mode', 'live');
+            $this->redirectUrl = config('payments.kashier.redirect_url', null);
+            $this->currency = config('payments.kashier.currency', 'EGP');
+            $this->display = config('payments.kashier.display', 'ar');
+            $this->redirectMethod = config('payments.kashier.redirect_method', 'get');
+        }
     }
 
     /**
      * Initialize a payment process by generating a payment URL.
      *
-     * @param  string  $orderId  The unique identifier for the order.
-     * @param  float  $amount  The total amount for the transaction.
-     * @param  array  $data  Additional data required for payment initialization.
+     * @param string $orderId The unique identifier for the order.
+     * @param float $amount The total amount for the transaction.
+     * @param array $data Additional data required for payment initialization.
      * @return string The payment URL to redirect the user to.
      *
      * @throws RuntimeException If payment URL generation fails.
@@ -64,66 +83,21 @@ class KashierService implements PaymentGatewayInterface
     }
 
     /**
-     * Get the checkout URL for client-side redirection.
-     *
-     * @param  mixed  $data  Data required to generate the URL.
-     * @return string The checkout URL.
-     */
-    public function getCheckoutUrl(mixed $data): string
-    {
-        return $data;
-    }
-
-    /**
-     * Verify the callback signature from Kashier to ensure it is valid.
-     *
-     * @param  Request  $request  The HTTP request containing the callback data.
-     * @return bool True if the signature is valid, false otherwise.
-     */
-    public function verifyCallback(Request $request): bool
-    {
-        $queryString = '';
-
-        foreach ($request->query() as $key => $value) {
-            if ($key === 'signature' || $key === 'mode') {
-                continue;
-            }
-            $queryString .= '&'.$key.'='.$value;
-        }
-
-        $queryString = ltrim($queryString, '&');
-
-        $signature = hash_hmac('sha256', $queryString, $this->secret, false);
-
-        return $signature === $request->query('signature');
-    }
-
-    /**
-     * Get the price factor based on the payment method.
-     *
-     * @param  mixed  $paymentMethod  The payment method to evaluate.
-     * @return float The price factor.
-     */
-    public function getPriceFactor(mixed $paymentMethod): float
-    {
-        return 1.0;
-    }
-
-    /**
      * Generate a payment URL for the Kashier service.
      *
-     * @param  string  $orderId  The unique identifier for the order.
-     * @param  float  $amount  The total amount for the transaction.
-     * @param  string  $metaData  Additional metadata for the payment.
-     * @param  string  $paymentRequestId  The payment request identifier.
+     * @param string $orderId The unique identifier for the order.
+     * @param float $amount The total amount for the transaction.
+     * @param string $metaData Additional metadata for the payment.
+     * @param string $paymentRequestId The payment request identifier.
      * @return string The generated payment URL.
      */
     private function getPayNowUrl(
         string $orderId,
-        float $amount,
+        float  $amount,
         string $metaData,
         string $paymentRequestId,
-    ): string {
+    ): string
+    {
         $hash = $this->generateKashierOrderHash($orderId, $amount);
 
         return sprintf(
@@ -146,14 +120,60 @@ class KashierService implements PaymentGatewayInterface
     /**
      * Generate a hash for the Kashier order to ensure data integrity.
      *
-     * @param  string  $orderId  The unique identifier for the order.
-     * @param  float  $amount  The total amount for the transaction.
+     * @param string $orderId The unique identifier for the order.
+     * @param float $amount The total amount for the transaction.
      * @return string The generated hash.
      */
     private function generateKashierOrderHash(string $orderId, $amount): string
     {
-        $path = '/?payment='.$this->merchantId.'.'.$orderId.'.'.$amount.'.'.$this->currency;
+        $path = '/?payment=' . $this->merchantId . '.' . $orderId . '.' . $amount . '.' . $this->currency;
 
         return hash_hmac('sha256', $path, $this->secret, false);
+    }
+
+    /**
+     * Get the checkout URL for client-side redirection.
+     *
+     * @param mixed $data Data required to generate the URL.
+     * @return string The checkout URL.
+     */
+    public function getCheckoutUrl(mixed $data): string
+    {
+        return $data;
+    }
+
+    /**
+     * Verify the callback signature from Kashier to ensure it is valid.
+     *
+     * @param Request $request The HTTP request containing the callback data.
+     * @return bool True if the signature is valid, false otherwise.
+     */
+    public function verifyCallback(Request $request): bool
+    {
+        $queryString = '';
+
+        foreach ($request->query() as $key => $value) {
+            if ($key === 'signature' || $key === 'mode') {
+                continue;
+            }
+            $queryString .= '&' . $key . '=' . $value;
+        }
+
+        $queryString = ltrim($queryString, '&');
+
+        $signature = hash_hmac('sha256', $queryString, $this->secret, false);
+
+        return $signature === $request->query('signature');
+    }
+
+    /**
+     * Get the price factor based on the payment method.
+     *
+     * @param mixed $paymentMethod The payment method to evaluate.
+     * @return float The price factor.
+     */
+    public function getPriceFactor(mixed $paymentMethod): float
+    {
+        return 1.0;
     }
 }
