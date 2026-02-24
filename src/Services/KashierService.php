@@ -8,32 +8,27 @@ use RuntimeException;
 
 class KashierService implements PaymentGatewayInterface
 {
+    private const API_URL = 'https://checkout.kashier.io';
+
     private string $baseUrl;
-
     private string $merchantId;
-
     private string $secret;
-
     private string $mode;
-
     private string $redirectUrl;
-
     private string $currency;
-
     private string $display;
-
     private string $redirectMethod;
 
     public function __construct(?array $credential = null)
     {
-        $base_url = data_get($credential, "base_url");
+        $base_url = data_get($credential, "base_url", self::API_URL);
         $merchant_id = data_get($credential, "merchant_id");
         $secret = data_get($credential, "api_key");
-        $mode = data_get($credential, "mode");
+        $mode = data_get($credential, "mode", 'live');
         $redirectUrl = data_get($credential, "redirect_url");
-        $currency = data_get($credential, "currency");
-        $display = data_get($credential, "display");
-        $redirectMethod = data_get($credential, "redirect_method");
+        $currency = data_get($credential, "currency", 'EGP');
+        $display = data_get($credential, "display", 'ar');
+        $redirectMethod = data_get($credential, "redirect_method", 'get');
         if ($base_url && $merchant_id && $secret) {
             $this->baseUrl = $base_url;
             $this->merchantId = $merchant_id;
@@ -44,7 +39,7 @@ class KashierService implements PaymentGatewayInterface
             $this->display = $display;
             $this->redirectMethod = $redirectMethod;
         } else {
-            $this->baseUrl = config('payments.kashier.base_url', 'https://checkout.kashier.io');
+            $this->baseUrl = config('payments.kashier.base_url', self::API_URL);
             $this->merchantId = config('payments.kashier.merchant_id', '');
             $this->secret = config('payments.kashier.api_key', '');
             $this->mode = config('payments.kashier.mode', 'live');

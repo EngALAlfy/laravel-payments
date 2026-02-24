@@ -11,23 +11,22 @@ use RuntimeException;
 
 class PaymobService implements PaymentGatewayInterface
 {
+    private const API_URL = 'https://accept.paymob.com/v1';
+    private const CHECKOUT_URL = 'https://accept.paymob.com/unifiedcheckout';
+
     private string $baseUrl;
-
     private string $checkoutUrl;
-
     private string $publicKey;
-
     private string $hmacSecret;
-
     private array $config;
 
     public function __construct(?array $credential = null)
     {
-        $base_url = data_get($credential, "base_url");
+        $base_url = data_get($credential, "base_url" , self::API_URL);
         $public_key = data_get($credential, "public_key");
         $secret_key = data_get($credential, "secret_key");
         $hmac_secret = data_get($credential, "hmac_secret");
-        $checkout_url = data_get($credential, "checkout_url");
+        $checkout_url = data_get($credential, "checkout_url", self::CHECKOUT_URL);
         if ($base_url && $public_key && $secret_key) {
             $this->baseUrl = $base_url;
             $this->publicKey = $public_key;
@@ -35,8 +34,8 @@ class PaymobService implements PaymentGatewayInterface
             $this->checkoutUrl = $checkout_url;
             $secretKey = $secret_key;
         }else {
-            $this->baseUrl = config('payments.paymob.base_url', 'https://accept.paymob.com/v1');
-            $this->checkoutUrl = config('payments.paymob.checkout_url', 'https://accept.paymob.com/unifiedcheckout');
+            $this->baseUrl = config('payments.paymob.base_url', self::API_URL);
+            $this->checkoutUrl = config('payments.paymob.checkout_url', self::CHECKOUT_URL);
             $this->publicKey = config('payments.paymob.public_key');
             $secretKey = config('payments.paymob.secret_key');
             $this->hmacSecret = config('payments.paymob.hmac_secret');

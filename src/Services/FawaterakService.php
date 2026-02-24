@@ -11,18 +11,22 @@ use RuntimeException;
 
 class FawaterakService implements PaymentGatewayInterface
 {
+    private const TEST_API_URL = 'https://staging.fawaterk.com/api/v2/';
+    private const PROD_API_URL = 'https://staging.fawaterk.com/api/v2/';
+
     private string $apiUrl;
     private string $token;
 
     public function __construct(?array $credential = null)
     {
-        $apiUrl = data_get($credential, "api_url");
+        $isTest = data_get($credential, "is_test", false);
+        $apiUrl = data_get($credential, "api_url", $isTest ? self::TEST_API_URL : self::PROD_API_URL);
         $token = data_get($credential, "token");
         if ($apiUrl && $token) {
             $this->apiUrl = $apiUrl;
             $this->token = $token;
         } else {
-            $this->apiUrl = config('payments.fawaterak.api_url', 'https://staging.fawaterk.com/api/v2/');
+            $this->apiUrl = config('payments.fawaterak.api_url', self::TEST_API_URL);
             $this->token = config('payments.fawaterak.token', '');
         }
     }
