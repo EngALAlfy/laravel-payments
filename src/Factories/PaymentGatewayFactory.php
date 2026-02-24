@@ -4,6 +4,7 @@ namespace EngAlalfy\LaravelPayments\Factories;
 
 use EngAlalfy\LaravelPayments\Enums\GatewayType;
 use EngAlalfy\LaravelPayments\Interfaces\PaymentGatewayInterface;
+use EngAlalfy\LaravelPayments\Services\FawaterakService;
 use EngAlalfy\LaravelPayments\Services\KashierService;
 use EngAlalfy\LaravelPayments\Services\PaymobService;
 use EngAlalfy\LaravelPayments\Services\TelrService;
@@ -30,6 +31,7 @@ class PaymentGatewayFactory
             GatewayType::PAYMOB => new PaymobService($credential),
             GatewayType::KASHIER => new KashierService($credential),
             GatewayType::TELR => new TelrService($credential),
+            GatewayType::FAWATERAK => new FawaterakService($credential),
             default => throw new InvalidArgumentException("Unsupported payment gateway: {$gatewayType->value}")
         };
     }
