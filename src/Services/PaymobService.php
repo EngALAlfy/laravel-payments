@@ -21,13 +21,27 @@ class PaymobService implements PaymentGatewayInterface
 
     private array $config;
 
-    public function __construct()
+    public function __construct(?array $credential = null)
     {
-        $this->baseUrl = config('payments.paymob.base_url', 'https://accept.paymob.com/v1');
-        $this->checkoutUrl = config('payments.paymob.checkout_url', 'https://accept.paymob.com/unifiedcheckout');
-        $this->publicKey = config('payments.paymob.public_key');
-        $secretKey = config('payments.paymob.secret_key');
-        $this->hmacSecret = config('payments.paymob.hmac_secret');
+        $base_url = data_get($credential, "base_url");
+        $public_key = data_get($credential, "public_key");
+        $secret_key = data_get($credential, "secret_key");
+        $hmac_secret = data_get($credential, "hmac_secret");
+        $checkout_url = data_get($credential, "checkout_url");
+        if ($base_url && $public_key && $secret_key) {
+            $this->baseUrl = $base_url;
+            $this->publicKey = $public_key;
+            $this->hmacSecret = $hmac_secret;
+            $this->checkoutUrl = $checkout_url;
+            $secretKey = $secret_key;
+        }else {
+            $this->baseUrl = config('payments.paymob.base_url', 'https://accept.paymob.com/v1');
+            $this->checkoutUrl = config('payments.paymob.checkout_url', 'https://accept.paymob.com/unifiedcheckout');
+            $this->publicKey = config('payments.paymob.public_key');
+            $secretKey = config('payments.paymob.secret_key');
+            $this->hmacSecret = config('payments.paymob.hmac_secret');
+        }
+
         $this->config = [
             'headers' => [
                 'Authorization' => 'Token '.$secretKey,

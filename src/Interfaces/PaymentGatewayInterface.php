@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
  */
 interface PaymentGatewayInterface
 {
+    public function __construct(?array $credential = null);
     /**
      * Initialize a payment
      *
