@@ -61,21 +61,40 @@ class FawaterakService implements PaymentGatewayInterface
     public function initializePayment(string $orderId, float $amount, array $data): array|string
     {
         try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer ' . $this->token,
-            ])->get($this->apiUrl . 'getPaymentmethods');
+            // Validate required fields
+            $required = [
+                'payment_method_id', 'cartTotal', 'currency', 'invoice_number',
+                'customerData', 'cartItems', 'redirectionUrls'
+            ];
 
-            if (!$response->successful()) {
-                throw new RuntimeException('Failed to fetch payment methods: ' . $response->body());
+            foreach ($required as $field) {
+                if (empty($data[$field])) {
+                    throw new RuntimeException("Missing required field: $field");
+                }
             }
 
-            $result = $response->json();
+            // Call createInvoice() from same service
+            $result = $this->createInvoice(
+                paymentMethodId: $data['payment_method_id'],
+                cartTotal: $data['cartTotal'],
+                currency: $data['currency'],
+                invoiceNumber: $data['invoice_number'],
+                customerData: $data['customerData'],
+                cartItems: $data['cartItems'],
+                redirectionUrls: $data['redirectionUrls'],
+                options: $data['options'] ?? []
+            );
+
+            if (!$result['success']) {
+                throw new RuntimeException('Failed to create invoice: ' . ($response['message'] ?? 'Unknown error'));
+            }
+
+            $paymentData = data_get($result, 'data');
 
             return [
                 'success' => true,
-                'data' => $result['data'] ?? [],
-                'raw' => $result
+                'data' => $paymentData,
+                'raw' => data_get($result, 'raw')
             ];
 
         } catch (Exception $e) {
@@ -100,49 +119,19 @@ class FawaterakService implements PaymentGatewayInterface
     public function getCheckoutUrl(mixed $data): string
     {
         try {
-            // Validate required fields
-            $required = [
-                'payment_method_id', 'cartTotal', 'currency', 'invoice_number',
-                'customerData', 'cartItems', 'redirectionUrls'
-            ];
-
-            foreach ($required as $field) {
-                if (empty($data[$field])) {
-                    throw new RuntimeException("Missing required field: $field");
-                }
-            }
-
-            // Call createInvoice() from same service
-            $response = $this->createInvoice(
-                paymentMethodId: $data['payment_method_id'],
-                cartTotal: $data['cartTotal'],
-                currency: $data['currency'],
-                invoiceNumber: $data['invoice_number'],
-                customerData: $data['customerData'],
-                cartItems: $data['cartItems'],
-                redirectionUrls: $data['redirectionUrls'],
-                options: $data['options'] ?? []
-            );
-
-            if (!$response['success']) {
-                throw new RuntimeException('Failed to create invoice: ' . ($response['message'] ?? 'Unknown error'));
-            }
-
-            $paymentData = $response['data']['payment_data'] ?? [];
-
             /**
              * Logic:
              * - if redirectTo present → return URL (Visa/Mastercard)
              * - else return JSON-encoded codes (e.g., fawryCode, amanCode etc.)
              */
 
+            $paymentData = data_get($data, 'payment_data', []);
             if (isset($paymentData['redirectTo'])) {
                 return $paymentData['redirectTo'];
             }
 
             // fallback: return payment code as JSON
             return json_encode($paymentData);
-
         } catch (Exception $e) {
             Log::error('Fawaterak getCheckoutUrl failed', [
                 'error' => $e->getMessage(),
@@ -285,6 +274,25 @@ class FawaterakService implements PaymentGatewayInterface
     {
         // You could parse paymentMethod['commission'] to adjust price if you want
         return 1.0;
+    }
+
+    /**
+     * Get the payment methods supported for your account
+     * @return array|mixed
+     * @throws \Illuminate\Http\Client\ConnectionException
+     */
+    public function getPaymentMethods(): mixed
+    {
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->get($this->apiUrl . 'getPaymentmethods');
+
+        if (!$response->successful()) {
+            throw new RuntimeException('Failed to fetch payment methods: ' . $response->body());
+        }
+
+        return $response->json('data');
     }
 
 }
