@@ -18,6 +18,7 @@ class KashierService implements PaymentGatewayInterface
     private string $currency;
     private string $display;
     private string $redirectMethod;
+    private string $allowedMethods = "card,wallet,bank_installments";
 
     public function __construct(?array $credential = null)
     {
@@ -64,6 +65,7 @@ class KashierService implements PaymentGatewayInterface
     {
         $metaData = $data['meta_data'] ?? '';
         $paymentRequestId = $data['payment_request_id'] ?? '';
+        $this->allowedMethods = $data['allowed_methods'] ?? $this->allowedMethods;
 
         if (empty($orderId) || $amount <= 0) {
             throw new RuntimeException('Invalid order ID or amount for payment initialization');
@@ -96,7 +98,7 @@ class KashierService implements PaymentGatewayInterface
         $hash = $this->generateKashierOrderHash($orderId, $amount);
 
         return sprintf(
-            '%s/?merchantId=%s&orderId=%s&amount=%s&currency=%s&hash=%s&mode=%s&merchantRedirect=%s&metaData=%s&paymentRequestId=%s&redirectMethod=%s&display=%s',
+            '%s/?merchantId=%s&orderId=%s&amount=%s&currency=%s&hash=%s&mode=%s&merchantRedirect=%s&metaData=%s&paymentRequestId=%s&redirectMethod=%s&display=%s&allowedMethods=%s',
             $this->baseUrl,
             urlencode($this->merchantId),
             urlencode($orderId),
@@ -108,7 +110,8 @@ class KashierService implements PaymentGatewayInterface
             urlencode($metaData),
             urlencode($paymentRequestId),
             urlencode($this->redirectMethod),
-            urlencode($this->display)
+            urlencode($this->display),
+            urlencode($this->allowedMethods),
         );
     }
 
