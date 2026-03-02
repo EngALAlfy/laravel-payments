@@ -64,13 +64,13 @@ class LaravelPayments
     /**
      * Verify a payment callback
      *
-     * @param  Request  $request  The request containing callback data
+     * @param mixed $data Data received from the payment gateway callback
      * @return array Verification result
      */
-    public function verifyPayment(Request $request): array
+    public function verifyPayment(mixed $data): array
     {
         try {
-            return $this->gateway->verifyCallback($request);
+            return $this->gateway->verifyCallback($data);
         } catch (\Exception $e) {
             Log::error('Payment verification failed', [
                 'gateway' => $this->gatewayType,
