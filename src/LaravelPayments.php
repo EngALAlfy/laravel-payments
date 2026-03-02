@@ -84,4 +84,13 @@ class LaravelPayments
             ];
         }
     }
+
+    /**
+     * Get the gateway instance
+     * @return \EngAlalfy\LaravelPayments\Interfaces\PaymentGatewayInterface
+     */
+    public function getGateway(): PaymentGatewayInterface
+    {
+        return $this->gateway;
+    }
 }
