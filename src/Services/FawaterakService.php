@@ -234,35 +234,34 @@ class FawaterakService implements PaymentGatewayInterface
     }
 
     /**
-     * Verify callback (usually needs endpoint to handle Fawaterak notifications).
+     * Verify callback.
      *
-     * @param Request $request
+     * @param mixed $data
      * @return array|bool
+     * @throws \Exception
      */
-    public function verifyCallback(Request $request): array|bool
+    public function verifyCallback(mixed $data): array|bool
     {
         // Since Fawaterak docs didn’t describe the callback verification yet,
         // return basic log & data. You can implement when actual callback data arrives.
 
         try {
-            Log::info('Fawaterak callback received', $request->all());
+            Log::info('Fawaterak callback received', $data);
 
             return [
                 'success' => true,
-                'data' => $request->all(),
+                'data' => $data,
                 'message' => 'Callback received (implement real verification later)',
             ];
 
         } catch (Exception $e) {
             Log::error('Fawaterak verifyCallback failed', [
                 'error' => $e->getMessage(),
+                'data' => $data,
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
+            throw $e;
         }
     }
 

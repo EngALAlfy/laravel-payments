@@ -88,13 +88,13 @@ class TelrService implements PaymentGatewayInterface
     /**
      * Verify the callback from Telr to ensure it is valid.
      *
-     * @param Request $request The HTTP request containing the callback data.
+     * @param mixed $data The data containing the callback data.
      * @return array|bool The result of the verification process.
      */
-    public function verifyCallback(Request $request): array|bool
+    public function verifyCallback(mixed $data): array|bool
     {
         try {
-            $reference = $request->input('OrderRef');
+            $reference = data_get($data, "OrderRef");
 
             if (empty($reference)) {
                 throw new RuntimeException('Order reference is missing from request');
@@ -116,7 +116,7 @@ class TelrService implements PaymentGatewayInterface
         } catch (Exception $e) {
             Log::error('Telr verification failed', [
                 'error' => $e->getMessage(),
-                'data' => $request->all(),
+                'data' => $data,
                 'trace' => $e->getTraceAsString(),
             ]);
 

@@ -30,7 +30,7 @@ interface PaymentGatewayInterface
     /**
      * Verify payment callback
      */
-    public function verifyCallback(Request $request): array|bool;
+    public function verifyCallback(mixed $data): array|bool;
 
     /**
      * Get price factor based on payment method
