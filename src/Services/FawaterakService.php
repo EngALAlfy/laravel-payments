@@ -57,6 +57,7 @@ class FawaterakService implements PaymentGatewayInterface
      * @param float $amount
      * @param array $data
      * @return array|string
+     * @throws \Illuminate\Http\Client\ConnectionException
      */
     public function initializePayment(string $orderId, float $amount, array $data): array|string
     {
@@ -103,10 +104,7 @@ class FawaterakService implements PaymentGatewayInterface
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
+            throw $e;
         }
     }
 
@@ -115,6 +113,7 @@ class FawaterakService implements PaymentGatewayInterface
      *
      * @param mixed $data Array with required fields.
      * @return string Checkout URL or JSON-encoded payment data (for codes)
+     * @throws \Exception
      */
     public function getCheckoutUrl(mixed $data): string
     {
@@ -124,6 +123,10 @@ class FawaterakService implements PaymentGatewayInterface
              * - if redirectTo present → return URL (Visa/Mastercard)
              * - else return JSON-encoded codes (e.g., fawryCode, amanCode etc.)
              */
+
+            if(!array_key_exists('payment_data', $data)){
+                throw new RuntimeException('Missing payment_data in response');
+            }
 
             $paymentData = data_get($data, 'payment_data', []);
             if (isset($paymentData['redirectTo'])) {
@@ -139,7 +142,7 @@ class FawaterakService implements PaymentGatewayInterface
                 'data' => $data,
             ]);
 
-            throw new RuntimeException('Error getting checkout URL: ' . $e->getMessage());
+            throw $e;
         }
     }
 
@@ -155,6 +158,7 @@ class FawaterakService implements PaymentGatewayInterface
      * @param array $redirectionUrls ['successUrl', 'failUrl', 'pendingUrl']
      * @param array $options optional extra fields: frequency, discountData, taxData, etc.
      * @return array
+     * @throws \Illuminate\Http\Client\ConnectionException
      */
     private function createInvoice(
         int    $paymentMethodId,
@@ -224,10 +228,7 @@ class FawaterakService implements PaymentGatewayInterface
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
+            throw $e;
         }
     }
 
