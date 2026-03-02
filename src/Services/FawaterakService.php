@@ -124,11 +124,11 @@ class FawaterakService implements PaymentGatewayInterface
              * - else return JSON-encoded codes (e.g., fawryCode, amanCode etc.)
              */
 
-            if(!array_key_exists('payment_data', $data)){
+            if(!array_key_exists('data.payment_data', $data)){
                 throw new RuntimeException('Missing payment_data in response');
             }
 
-            $paymentData = data_get($data, 'payment_data', []);
+            $paymentData = data_get($data, 'data.payment_data', []);
             if (isset($paymentData['redirectTo'])) {
                 return $paymentData['redirectTo'];
             }
