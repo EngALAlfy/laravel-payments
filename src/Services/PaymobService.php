@@ -106,22 +106,21 @@ class PaymobService implements PaymentGatewayInterface
     /**
      * Verify the callback of the payment by HMAC.
      *
-     * @param  Request  $request  The HTTP request containing the callback data.
+     * @param mixed $data The HTTP request containing the callback data.
      * @return array The result of the verification process.
      */
-    public function verifyCallback(Request $request): array
+    public function verifyCallback(mixed $data): array
     {
         try {
             if (! $this->hmacSecret) {
                 throw new RuntimeException('HMAC secret is not configured');
             }
 
-            $receivedHmac = $request->query('hmac');
+            $receivedHmac = data_get($data, 'hmac');
             if (! $receivedHmac) {
                 throw new RuntimeException('HMAC is missing from request');
             }
 
-            $data = $request->all();
             if (empty($data)) {
                 throw new RuntimeException('Request data is empty');
             }

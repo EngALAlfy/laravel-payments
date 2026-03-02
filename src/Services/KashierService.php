@@ -143,14 +143,14 @@ class KashierService implements PaymentGatewayInterface
     /**
      * Verify the callback signature from Kashier to ensure it is valid.
      *
-     * @param Request $request The HTTP request containing the callback data.
+     * @param mixed $data The data containing the callback data.
      * @return bool True if the signature is valid, false otherwise.
      */
-    public function verifyCallback(Request $request): bool
+    public function verifyCallback(mixed $data): bool
     {
         $queryString = '';
 
-        foreach ($request->query() as $key => $value) {
+        foreach ($data as $key => $value) {
             if ($key === 'signature' || $key === 'mode') {
                 continue;
             }
@@ -161,7 +161,7 @@ class KashierService implements PaymentGatewayInterface
 
         $signature = hash_hmac('sha256', $queryString, $this->secret, false);
 
-        return $signature === $request->query('signature');
+        return $signature === data_get($data, 'signature');
     }
 
     /**
