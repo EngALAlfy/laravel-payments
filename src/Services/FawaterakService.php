@@ -64,8 +64,13 @@ class FawaterakService implements PaymentGatewayInterface
         try {
             // Validate required fields
             $required = [
-                'payment_method_id', 'cartTotal', 'currency', 'invoice_number',
-                'customerData', 'cartItems', 'redirectionUrls'
+                'payment_method_id',
+                'cartTotal',
+                'currency',
+                'invoice_number',
+                'customerData',
+                'cartItems',
+                'redirectionUrls'
             ];
 
             foreach ($required as $field) {
@@ -97,7 +102,6 @@ class FawaterakService implements PaymentGatewayInterface
                 'data' => $paymentData,
                 'raw' => data_get($result, 'raw')
             ];
-
         } catch (Exception $e) {
             Log::error('Fawaterak initializePayment failed', [
                 'error' => $e->getMessage(),
@@ -125,7 +129,7 @@ class FawaterakService implements PaymentGatewayInterface
              */
 
             $data = data_get($data, 'data', []);
-            if(!array_key_exists('payment_data', $data)){
+            if (!array_key_exists('payment_data', $data)) {
                 throw new RuntimeException('Missing payment_data in response');
             }
 
@@ -170,8 +174,7 @@ class FawaterakService implements PaymentGatewayInterface
         array  $cartItems,
         array  $redirectionUrls,
         array  $options = []
-    ): array
-    {
+    ): array {
         try {
             $payload = [
                 'payment_method_id' => $paymentMethodId,
@@ -195,9 +198,18 @@ class FawaterakService implements PaymentGatewayInterface
 
             // Add any optional fields if provided
             $optionalFields = [
-                'frequency', 'customExpireDate', 'discountData', 'taxData',
-                'authAndCapture', 'payLoad', 'mobileWalletNumber',
-                'due_date', 'sendEmail', 'sendSMS', 'lang', 'redirectOption',
+                'frequency',
+                'customExpireDate',
+                'discountData',
+                'taxData',
+                'authAndCapture',
+                'payLoad',
+                'mobileWalletNumber',
+                'due_date',
+                'sendEmail',
+                'sendSMS',
+                'lang',
+                'redirectOption',
             ];
 
             foreach ($optionalFields as $field) {
@@ -222,7 +234,6 @@ class FawaterakService implements PaymentGatewayInterface
                 'data' => $result['data'] ?? [],
                 'raw' => $result,
             ];
-
         } catch (Exception $e) {
             Log::error('Fawaterak createInvoice failed', [
                 'error' => $e->getMessage(),
@@ -234,26 +245,69 @@ class FawaterakService implements PaymentGatewayInterface
     }
 
     /**
-     * Verify callback.
+     * Verify callback by fetching invoice data from Fawaterak API
+     * and validating that the invoice is paid and the total matches.
      *
-     * @param mixed $data
+     * @param mixed $data  Callback data containing 'invoice_id' and 'total'
      * @return array|bool
      * @throws \Exception
      */
     public function verifyCallback(mixed $data): array|bool
     {
-        // Since Fawaterak docs didn’t describe the callback verification yet,
-        // return basic log & data. You can implement when actual callback data arrives.
-
         try {
             Log::info('Fawaterak callback received', $data);
 
+            $invoiceId = data_get($data, 'invoice_id');
+            $expectedTotal = data_get($data, 'total');
+
+            if (empty($invoiceId)) {
+                throw new RuntimeException('Missing invoice_id in callback data');
+            }
+
+            // Fetch invoice data from Fawaterak API
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer ' . $this->token,
+            ])->get($this->apiUrl . 'getInvoiceData/' . $invoiceId);
+
+            if (!$response->successful()) {
+                throw new RuntimeException('Failed to fetch invoice data from Fawaterak: ' . $response->body());
+            }
+
+            $result = $response->json();
+
+            // Validate API response status
+            if (data_get($result, 'status') !== 'success') {
+                throw new RuntimeException('Invoice data request was not successful for invoice: ' . $invoiceId);
+            }
+
+            $invoiceData = data_get($result, 'data', []);
+
+            // Check that the invoice is paid
+            $isPaid = (int) data_get($invoiceData, 'paid') === 1;
+
+            if (!$isPaid) {
+                throw new RuntimeException('Invoice is not paid: ' . $invoiceId);
+            }
+
+            // Validate the total matches (prevent tampering)
+            $apiTotal = (float) data_get($invoiceData, 'total');
+
+            if ($expectedTotal !== null && (float) $expectedTotal !== $apiTotal) {
+                throw new RuntimeException('Total amount mismatch for invoice ' . $invoiceId . ': expected ' . $expectedTotal . ', got ' . $apiTotal);
+            }
+
+            Log::info('Fawaterak callback verified successfully', [
+                'invoice_id' => $invoiceId,
+                'total' => $apiTotal,
+                'data' => $invoiceData,
+            ]);
+
             return [
                 'success' => true,
-                'data' => $data,
-                'message' => 'Callback received (implement real verification later)',
+                'message' => 'Payment verified successfully',
+                'data' => $invoiceData,
             ];
-
         } catch (Exception $e) {
             Log::error('Fawaterak verifyCallback failed', [
                 'error' => $e->getMessage(),
@@ -295,5 +349,4 @@ class FawaterakService implements PaymentGatewayInterface
 
         return $response->json('data');
     }
-
 }
