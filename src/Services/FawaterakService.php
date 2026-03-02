@@ -124,11 +124,12 @@ class FawaterakService implements PaymentGatewayInterface
              * - else return JSON-encoded codes (e.g., fawryCode, amanCode etc.)
              */
 
-            if(!array_key_exists('data.payment_data', $data)){
+            $data = data_get($data, 'data', []);
+            if(!array_key_exists('payment_data', $data)){
                 throw new RuntimeException('Missing payment_data in response');
             }
 
-            $paymentData = data_get($data, 'data.payment_data', []);
+            $paymentData = data_get($data, 'payment_data', []);
             if (isset($paymentData['redirectTo'])) {
                 return $paymentData['redirectTo'];
             }
@@ -138,8 +139,8 @@ class FawaterakService implements PaymentGatewayInterface
         } catch (Exception $e) {
             Log::error('Fawaterak getCheckoutUrl failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
                 'data' => $data,
+                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;
