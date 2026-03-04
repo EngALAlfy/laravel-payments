@@ -98,7 +98,7 @@ class KashierService implements PaymentGatewayInterface
         $hash = $this->generateKashierOrderHash($orderId, $amount);
 
         return sprintf(
-            '%s/?merchantId=%s&orderId=%s&amount=%s&currency=%s&hash=%s&mode=%s&merchantRedirect=%s&metaData=%s&paymentRequestId=%s&redirectMethod=%s&display=%s&allowedMethods=%s',
+            '%s/?merchantId=%s&orderId=%s&amount=%s&currency=%s&hash=%s&mode=%s&merchantRedirect=%s&metaData=%s&paymentRequestId=%s&redirectMethod=%s&allowedMethods=%s&display=%s',
             $this->baseUrl,
             urlencode($this->merchantId),
             urlencode($orderId),
@@ -110,8 +110,8 @@ class KashierService implements PaymentGatewayInterface
             urlencode($metaData),
             urlencode($paymentRequestId),
             urlencode($this->redirectMethod),
-            urlencode($this->display),
             urlencode($this->allowedMethods),
+            urlencode($this->display),
         );
     }
 
