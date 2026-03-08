@@ -70,9 +70,7 @@ class KashierService implements PaymentGatewayInterface
      *   - type (string)                    : e.g., "one-time". Default: "one-time".
      *   - allowed_methods (string)         : e.g., "card,wallet". Overrides default.
      *   - redirect_method (string|null)    : "get" or "post". Default: null.
-     *   - iframe_background_color (string) : Hex color for iframe background.
-     *   - meta_data (array)                : Metadata including displayNotes.
-     *   - failure_redirect (bool)          : Redirect on failure. Default: false.
+     *   - failure_redirect (bool)       : Redirect on failure. Default: true.
      *   - brand_color (string)             : Hex color for branding.
      *   - default_method (string)          : Default payment method tab.
      *   - description (string)             : Order description (max 120 chars).
@@ -84,9 +82,12 @@ class KashierService implements PaymentGatewayInterface
      *   - enable_3ds (bool)                : Enable 3DS. Default: true.
      *   - server_webhook (string)          : Webhook URL for server-to-server notifications.
      *   - notes (string)                   : Additional notes.
-     * @return array The full API response.
+     *   - meta_data (array)             : Metadata including displayNotes.
+     *   - iframe_background_color (string) : Hex color for iframe background.
+     *   - connected_account (string)    : Sub-merchant ID for connected accounts.
+     * @return array|string The full API response.
      *
-     * @throws RuntimeException If session creation fails.
+     * @throws \Exception If session creation fails.
      */
     public function initializePayment(string $orderId, float $amount, array $data): array|string
     {
