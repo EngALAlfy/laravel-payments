@@ -3,147 +3,217 @@
 namespace EngAlalfy\LaravelPayments\Services;
 
 use EngAlalfy\LaravelPayments\Interfaces\PaymentGatewayInterface;
-use Illuminate\Http\Request;
+use Exception;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class KashierService implements PaymentGatewayInterface
 {
-    private const API_URL = 'https://checkout.kashier.io';
+    private const TEST_API_URL = 'https://test-api.kashier.io';
+    private const LIVE_API_URL = 'https://api.kashier.io';
 
     private string $baseUrl;
     private string $merchantId;
-    private string $secret;
+    private string $secretKey;
+    private string $apiKey;
     private string $mode;
     private string $redirectUrl;
     private string $currency;
     private string $display;
-    private string $redirectMethod;
-    private string $allowedMethods = "card,wallet,bank_installments";
+    private string $type;
+    private string $allowedMethods;
 
     public function __construct(?array $credential = null)
     {
-        $base_url = data_get($credential, "base_url", self::API_URL);
-        $merchant_id = data_get($credential, "merchant_id");
-        $secret = data_get($credential, "api_key");
-        $mode = data_get($credential, "mode", 'live');
-        $redirectUrl = data_get($credential, "redirect_url");
-        $currency = data_get($credential, "currency", 'EGP');
-        $display = data_get($credential, "display", 'ar');
-        $redirectMethod = data_get($credential, "redirect_method", 'get');
-        if ($base_url && $merchant_id && $secret) {
-            $this->baseUrl = $base_url;
-            $this->merchantId = $merchant_id;
-            $this->secret = $secret;
+        $merchantId = data_get($credential, 'merchant_id');
+        $secretKey = data_get($credential, 'secret_key');
+        $apiKey = data_get($credential, 'api_key');
+
+        if ($merchantId && $secretKey && $apiKey) {
+            $mode = data_get($credential, 'mode', 'live');
+            $this->baseUrl = $mode === 'test' ? self::TEST_API_URL : self::LIVE_API_URL;
+            $this->merchantId = $merchantId;
+            $this->secretKey = $secretKey;
+            $this->apiKey = $apiKey;
             $this->mode = $mode;
-            $this->redirectUrl = $redirectUrl;
-            $this->currency = $currency;
-            $this->display = $display;
-            $this->redirectMethod = $redirectMethod;
+            $this->redirectUrl = data_get($credential, 'redirect_url', '');
+            $this->currency = data_get($credential, 'currency', 'EGP');
+            $this->display = data_get($credential, 'display', 'en');
+            $this->type = data_get($credential, 'type', 'external');
+            $this->allowedMethods = data_get($credential, 'allowed_methods', 'card,wallet,bank_installments');
         } else {
-            $this->baseUrl = config('payments.kashier.base_url', self::API_URL);
+            $mode = config('payments.kashier.mode', 'live');
+            $this->baseUrl = $mode === 'test' ? self::TEST_API_URL : self::LIVE_API_URL;
             $this->merchantId = config('payments.kashier.merchant_id', '');
-            $this->secret = config('payments.kashier.api_key', '');
-            $this->mode = config('payments.kashier.mode', 'live');
-            $this->redirectUrl = config('payments.kashier.redirect_url', null);
+            $this->secretKey = config('payments.kashier.secret_key', '');
+            $this->apiKey = config('payments.kashier.api_key', '');
+            $this->mode = $mode;
+            $this->redirectUrl = config('payments.kashier.redirect_url', '');
             $this->currency = config('payments.kashier.currency', 'EGP');
-            $this->display = config('payments.kashier.display', 'ar');
-            $this->redirectMethod = config('payments.kashier.redirect_method', 'get');
+            $this->display = config('payments.kashier.display', 'en');
+            $this->type = config('payments.kashier.type', 'external');
+            $this->allowedMethods = config('payments.kashier.allowed_methods', 'card,wallet,bank_installments');
         }
     }
 
     /**
-     * Initialize a payment process by generating a payment URL.
+     * Initialize a payment by creating a Kashier payment session (v3 API).
      *
      * @param string $orderId The unique identifier for the order.
      * @param float $amount The total amount for the transaction.
-     * @param array $data Additional data required for payment initialization.
-     * @return string The payment URL to redirect the user to.
+     * @param array $data Additional data for the payment session.
+     *   Supported keys:
+     *   - expire_at (string)           : When the session expires (ISO 8601). Defaults to +24 hours.
+     *   - max_failure_attempts (int)    : Max payment attempts. Default: 3.
+     *   - payment_type (string)         : e.g., "credit". Default: "credit".
+     *   - currency (string)             : Overrides default currency.
+     *   - merchant_redirect (string)    : Overrides default redirect URL.
+     *   - display (string)              : "en" or "ar". Overrides default.
+     *   - type (string)                 : Session type. Default: "external".
+     *   - allowed_methods (string)      : e.g., "card,wallet". Overrides default.
+     *   - redirect_method (string|null) : "get" or "post". Default: null.
+     *   - failure_redirect (bool)       : Redirect on failure. Default: true.
+     *   - brand_color (string)          : Hex color for branding.
+     *   - default_method (string)       : Default payment method tab.
+     *   - description (string)          : Order description (max 120 chars).
+     *   - manual_capture (bool)         : Authorize first then capture. Default: false.
+     *   - customer (array)              : ['email' => '...', 'reference' => '...'].
+     *   - save_card (string)            : "optional" or "forced".
+     *   - retrieve_saved_card (bool)    : Retrieve saved cards. Default: false.
+     *   - interaction_source (string)   : "ECOMMERCE" or "MOTO".
+     *   - enable_3ds (bool)             : Enable 3DS. Default: true.
+     *   - server_webhook (string)       : Webhook URL for server-to-server notifications.
+     *   - notes (string)                : Additional notes.
+     *   - meta_data (array)             : Metadata including displayNotes.
+     *   - iframe_background_color (string) : Hex color for iframe background.
+     *   - connected_account (string)    : Sub-merchant ID for connected accounts.
+     * @return array The full API response.
      *
-     * @throws RuntimeException If payment URL generation fails.
+     * @throws RuntimeException If session creation fails.
      */
-    public function initializePayment(string $orderId, float $amount, array $data): string
+    public function initializePayment(string $orderId, float $amount, array $data): array|string
     {
-        $metaData = $data['meta_data'] ?? '';
-        $paymentRequestId = $data['payment_request_id'] ?? '';
-        $this->allowedMethods = $data['allowed_methods'] ?? $this->allowedMethods;
+        try {
+            if (empty($orderId) || $amount <= 0) {
+                throw new RuntimeException('Invalid order ID or amount for payment initialization');
+            }
 
-        if (empty($orderId) || $amount <= 0) {
-            throw new RuntimeException('Invalid order ID or amount for payment initialization');
+            $result = $this->createPaymentSession($orderId, $amount, $data);
+
+            if (!$result['success']) {
+                throw new RuntimeException('Failed to create Kashier payment session: ' . ($result['message'] ?? 'Unknown error'));
+            }
+
+            return [
+                'success' => true,
+                'data' => $result['data'],
+                'raw' => $result['raw'],
+            ];
+        } catch (Exception $e) {
+            Log::error('Kashier initializePayment failed', [
+                'error' => $e->getMessage(),
+                'order_id' => $orderId,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Create a payment session via Kashier v3 API.
+     *
+     * @param string $orderId
+     * @param float $amount
+     * @param array $data
+     * @return array
+     */
+    private function createPaymentSession(string $orderId, float $amount, array $data): array
+    {
+        $payload = [
+            'expireAt' => $data['expire_at'] ?? now()->addDay()->toISOString(),
+            'maxFailureAttempts' => $data['max_failure_attempts'] ?? 3,
+            'paymentType' => $data['payment_type'] ?? 'credit',
+            'amount' => number_format($amount, 2, '.', ''),
+            'currency' => $data['currency'] ?? $this->currency,
+            'order' => $orderId,
+            'merchantRedirect' => $data['merchant_redirect'] ?? $this->redirectUrl,
+            'display' => $data['display'] ?? $this->display,
+            'type' => $data['type'] ?? $this->type,
+            'allowedMethods' => $data['allowed_methods'] ?? $this->allowedMethods,
+            'merchantId' => $this->merchantId,
+            'mode' => $this->mode,
+        ];
+
+        // Optional parameters
+        $optionalMappings = [
+            'redirect_method' => 'redirectMethod',
+            'failure_redirect' => 'failureRedirect',
+            'brand_color' => 'brandColor',
+            'default_method' => 'defaultMethod',
+            'description' => 'description',
+            'manual_capture' => 'manualCapture',
+            'customer' => 'customer',
+            'save_card' => 'saveCard',
+            'retrieve_saved_card' => 'retrieveSavedCard',
+            'interaction_source' => 'interactionSource',
+            'enable_3ds' => 'enable3DS',
+            'server_webhook' => 'serverWebhook',
+            'notes' => 'notes',
+            'meta_data' => 'metaData',
+            'iframe_background_color' => 'iframeBackgroundColor',
+            'connected_account' => 'connectedAccount',
+        ];
+
+        foreach ($optionalMappings as $dataKey => $apiKey) {
+            if (array_key_exists($dataKey, $data)) {
+                $payload[$apiKey] = $data[$dataKey];
+            }
         }
 
-        return $this->getPayNowUrl(
-            $orderId,
-            $amount,
-            $metaData,
-            $paymentRequestId
-        );
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => $this->secretKey,
+            'api-key' => $this->apiKey,
+        ])->post($this->baseUrl . '/v3/payment/sessions', $payload);
+
+        if (!$response->successful()) {
+            throw new RuntimeException('Kashier API error: ' . $response->body());
+        }
+
+        $result = $response->json();
+
+        return [
+            'success' => true,
+            'data' => $result,
+            'raw' => $result,
+        ];
     }
 
     /**
-     * Generate a payment URL for the Kashier service.
+     * Extract the session URL from the payment session response.
      *
-     * @param string $orderId The unique identifier for the order.
-     * @param float $amount The total amount for the transaction.
-     * @param string $metaData Additional metadata for the payment.
-     * @param string $paymentRequestId The payment request identifier.
-     * @return string The generated payment URL.
-     */
-    private function getPayNowUrl(
-        string $orderId,
-        float  $amount,
-        string $metaData,
-        string $paymentRequestId,
-    ): string
-    {
-        $hash = $this->generateKashierOrderHash($orderId, $amount);
-
-        return sprintf(
-            '%s/?merchantId=%s&orderId=%s&amount=%s&currency=%s&hash=%s&mode=%s&merchantRedirect=%s&metaData=%s&paymentRequestId=%s&redirectMethod=%s&allowedMethods=%s&display=%s',
-            $this->baseUrl,
-            urlencode($this->merchantId),
-            urlencode($orderId),
-            urlencode($amount),
-            urlencode($this->currency),
-            urlencode($hash),
-            urlencode($this->mode),
-            urlencode($this->redirectUrl),
-            urlencode($metaData),
-            urlencode($paymentRequestId),
-            urlencode($this->redirectMethod),
-            urlencode($this->allowedMethods),
-            urlencode($this->display),
-        );
-    }
-
-    /**
-     * Generate a hash for the Kashier order to ensure data integrity.
+     * @param mixed $data The response from initializePayment.
+     * @return string The session URL for redirecting the customer.
      *
-     * @param string $orderId The unique identifier for the order.
-     * @param float $amount The total amount for the transaction.
-     * @return string The generated hash.
-     */
-    private function generateKashierOrderHash(string $orderId, $amount): string
-    {
-        $path = '/?payment=' . $this->merchantId . '.' . $orderId . '.' . $amount . '.' . $this->currency;
-
-        return hash_hmac('sha256', $path, $this->secret, false);
-    }
-
-    /**
-     * Get the checkout URL for client-side redirection.
-     *
-     * @param mixed $data Data required to generate the URL.
-     * @return string The checkout URL.
+     * @throws RuntimeException If session URL is missing.
      */
     public function getCheckoutUrl(mixed $data): string
     {
-        return $data;
+        $sessionUrl = data_get($data, 'data.sessionUrl');
+
+        if (empty($sessionUrl)) {
+            throw new RuntimeException('Kashier session URL not found in response');
+        }
+
+        return $sessionUrl;
     }
 
     /**
      * Verify the callback signature from Kashier to ensure it is valid.
      *
-     * @param mixed $data The data containing the callback data.
+     * @param mixed $data The callback query parameters.
      * @return bool True if the signature is valid, false otherwise.
      */
     public function verifyCallback(mixed $data): bool
@@ -159,7 +229,7 @@ class KashierService implements PaymentGatewayInterface
 
         $queryString = ltrim($queryString, '&');
 
-        $signature = hash_hmac('sha256', $queryString, $this->secret, false);
+        $signature = hash_hmac('sha256', $queryString, $this->secretKey, false);
 
         return $signature === data_get($data, 'signature');
     }
