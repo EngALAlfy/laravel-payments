@@ -21,7 +21,6 @@ class KashierService implements PaymentGatewayInterface
     private string $redirectUrl;
     private string $currency;
     private string $display;
-    private string $type;
     private string $allowedMethods;
 
     public function __construct(?array $credential = null)
@@ -40,7 +39,6 @@ class KashierService implements PaymentGatewayInterface
             $this->redirectUrl = data_get($credential, 'redirect_url', '');
             $this->currency = data_get($credential, 'currency', 'EGP');
             $this->display = data_get($credential, 'display', 'en');
-            $this->type = data_get($credential, 'type', 'external');
             $this->allowedMethods = data_get($credential, 'allowed_methods', 'card,wallet,bank_installments');
         } else {
             $mode = config('payments.kashier.mode', 'live');
@@ -52,7 +50,6 @@ class KashierService implements PaymentGatewayInterface
             $this->redirectUrl = config('payments.kashier.redirect_url', '');
             $this->currency = config('payments.kashier.currency', 'EGP');
             $this->display = config('payments.kashier.display', 'en');
-            $this->type = config('payments.kashier.type', 'external');
             $this->allowedMethods = config('payments.kashier.allowed_methods', 'card,wallet,bank_installments');
         }
     }
@@ -64,30 +61,29 @@ class KashierService implements PaymentGatewayInterface
      * @param float $amount The total amount for the transaction.
      * @param array $data Additional data for the payment session.
      *   Supported keys:
-     *   - expire_at (string)           : When the session expires (ISO 8601). Defaults to +24 hours.
-     *   - max_failure_attempts (int)    : Max payment attempts. Default: 3.
-     *   - payment_type (string)         : e.g., "credit". Default: "credit".
-     *   - currency (string)             : Overrides default currency.
-     *   - merchant_redirect (string)    : Overrides default redirect URL.
-     *   - display (string)              : "en" or "ar". Overrides default.
-     *   - type (string)                 : Session type. Default: "external".
-     *   - allowed_methods (string)      : e.g., "card,wallet". Overrides default.
-     *   - redirect_method (string|null) : "get" or "post". Default: null.
-     *   - failure_redirect (bool)       : Redirect on failure. Default: true.
-     *   - brand_color (string)          : Hex color for branding.
-     *   - default_method (string)       : Default payment method tab.
-     *   - description (string)          : Order description (max 120 chars).
-     *   - manual_capture (bool)         : Authorize first then capture. Default: false.
-     *   - customer (array)              : ['email' => '...', 'reference' => '...'].
-     *   - save_card (string)            : "optional" or "forced".
-     *   - retrieve_saved_card (bool)    : Retrieve saved cards. Default: false.
-     *   - interaction_source (string)   : "ECOMMERCE" or "MOTO".
-     *   - enable_3ds (bool)             : Enable 3DS. Default: true.
-     *   - server_webhook (string)       : Webhook URL for server-to-server notifications.
-     *   - notes (string)                : Additional notes.
-     *   - meta_data (array)             : Metadata including displayNotes.
+     *   - expire_at (string)              : When the session expires (ISO 8601). Defaults to +24 hours.
+     *   - max_failure_attempts (int)       : Max payment attempts. Default: 3.
+     *   - payment_type (string)            : e.g., "credit". Default: "credit".
+     *   - currency (string)                : Overrides default currency.
+     *   - merchant_redirect (string)       : Overrides default redirect URL.
+     *   - display (string)                 : "en" or "ar". Overrides default.
+     *   - type (string)                    : e.g., "one-time". Default: "one-time".
+     *   - allowed_methods (string)         : e.g., "card,wallet". Overrides default.
+     *   - redirect_method (string|null)    : "get" or "post". Default: null.
      *   - iframe_background_color (string) : Hex color for iframe background.
-     *   - connected_account (string)    : Sub-merchant ID for connected accounts.
+     *   - meta_data (array)                : Metadata including displayNotes.
+     *   - failure_redirect (bool)          : Redirect on failure. Default: false.
+     *   - brand_color (string)             : Hex color for branding.
+     *   - default_method (string)          : Default payment method tab.
+     *   - description (string)             : Order description (max 120 chars).
+     *   - manual_capture (bool)            : Authorize first then capture. Default: false.
+     *   - customer (array)                 : ['email' => '...', 'reference' => '...'].
+     *   - save_card (string)               : "optional" or "forced".
+     *   - retrieve_saved_card (bool)       : Retrieve saved cards. Default: false.
+     *   - interaction_source (string)      : "ECOMMERCE" or "MOTO".
+     *   - enable_3ds (bool)                : Enable 3DS. Default: true.
+     *   - server_webhook (string)          : Webhook URL for server-to-server notifications.
+     *   - notes (string)                   : Additional notes.
      * @return array The full API response.
      *
      * @throws RuntimeException If session creation fails.
@@ -140,15 +136,16 @@ class KashierService implements PaymentGatewayInterface
             'order' => $orderId,
             'merchantRedirect' => $data['merchant_redirect'] ?? $this->redirectUrl,
             'display' => $data['display'] ?? $this->display,
-            'type' => $data['type'] ?? $this->type,
+            'type' => $data['type'] ?? 'external',
             'allowedMethods' => $data['allowed_methods'] ?? $this->allowedMethods,
             'merchantId' => $this->merchantId,
-            'mode' => $this->mode,
         ];
 
-        // Optional parameters
+        // Optional parameters (matching the Kashier v3 API body)
         $optionalMappings = [
             'redirect_method' => 'redirectMethod',
+            'iframe_background_color' => 'iframeBackgroundColor',
+            'meta_data' => 'metaData',
             'failure_redirect' => 'failureRedirect',
             'brand_color' => 'brandColor',
             'default_method' => 'defaultMethod',
@@ -161,9 +158,6 @@ class KashierService implements PaymentGatewayInterface
             'enable_3ds' => 'enable3DS',
             'server_webhook' => 'serverWebhook',
             'notes' => 'notes',
-            'meta_data' => 'metaData',
-            'iframe_background_color' => 'iframeBackgroundColor',
-            'connected_account' => 'connectedAccount',
         ];
 
         foreach ($optionalMappings as $dataKey => $apiKey) {
