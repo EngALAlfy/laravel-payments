@@ -125,6 +125,7 @@ class KashierService implements PaymentGatewayInterface
      * @param float $amount
      * @param array $data
      * @return array
+     * @throws \Illuminate\Http\Client\ConnectionException
      */
     private function createPaymentSession(string $orderId, float $amount, array $data): array
     {
@@ -140,6 +141,7 @@ class KashierService implements PaymentGatewayInterface
             'type' => $data['type'] ?? 'external',
             'allowedMethods' => $data['allowed_methods'] ?? $this->allowedMethods,
             'merchantId' => $this->merchantId,
+            'mode' => $this->mode,
         ];
 
         // Optional parameters (matching the Kashier v3 API body)
@@ -167,6 +169,8 @@ class KashierService implements PaymentGatewayInterface
             }
         }
 
+        info('Kashier Payload', $payload);
+        info('Kashier URL', $this->baseUrl . '/v3/payment/sessions');
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => $this->secretKey,
