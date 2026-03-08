@@ -140,12 +140,13 @@ class KashierService implements PaymentGatewayInterface
             'type' => $data['type'] ?? 'external',
             'allowedMethods' => $data['allowed_methods'] ?? $this->allowedMethods,
             'merchantId' => $this->merchantId,
-            'mode' => $this->mode,
         ];
 
-        // Optional parameters
+        // Optional parameters (matching the Kashier v3 API body)
         $optionalMappings = [
             'redirect_method' => 'redirectMethod',
+            'iframe_background_color' => 'iframeBackgroundColor',
+            'meta_data' => 'metaData',
             'failure_redirect' => 'failureRedirect',
             'brand_color' => 'brandColor',
             'default_method' => 'defaultMethod',
@@ -158,9 +159,6 @@ class KashierService implements PaymentGatewayInterface
             'enable_3ds' => 'enable3DS',
             'server_webhook' => 'serverWebhook',
             'notes' => 'notes',
-            'meta_data' => 'metaData',
-            'iframe_background_color' => 'iframeBackgroundColor',
-            'connected_account' => 'connectedAccount',
         ];
 
         foreach ($optionalMappings as $dataKey => $apiKey) {
