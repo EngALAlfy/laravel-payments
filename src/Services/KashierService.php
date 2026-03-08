@@ -169,8 +169,13 @@ class KashierService implements PaymentGatewayInterface
             }
         }
 
-        info('Kashier Payload', $payload);
-        info('Kashier URL', $this->baseUrl . '/v3/payment/sessions');
+        if($this->mode === 'test') {
+            info('Kashier Payload', $payload);
+            info('Kashier URL', [
+                "url" => $this->baseUrl . '/v3/payment/sessions'
+            ]);
+        }
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => $this->secretKey,
