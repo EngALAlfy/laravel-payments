@@ -138,10 +138,10 @@ class KashierService implements PaymentGatewayInterface
             'order' => $orderId,
             'merchantRedirect' => $data['merchant_redirect'] ?? $this->redirectUrl,
             'display' => $data['display'] ?? $this->display,
-            'type' => $data['type'] ?? 'external',
+            'type' => $data['type'] ?? 'one-time',
             'allowedMethods' => $data['allowed_methods'] ?? $this->allowedMethods,
             'merchantId' => $this->merchantId,
-            'mode' => $this->mode,
+
         ];
 
         // Optional parameters (matching the Kashier v3 API body)
