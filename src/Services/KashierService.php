@@ -169,7 +169,7 @@ class KashierService implements PaymentGatewayInterface
             }
         }
 
-        if($this->mode === 'test') {
+        if ($this->mode === 'test') {
             info('Kashier Payload', $payload);
             info('Kashier URL', [
                 "url" => $this->baseUrl . '/v3/payment/sessions'
@@ -218,9 +218,9 @@ class KashierService implements PaymentGatewayInterface
      * Verify the callback signature from Kashier to ensure it is valid.
      *
      * @param mixed $data The callback query parameters.
-     * @return bool True if the signature is valid, false otherwise.
+     * @return array True if the signature is valid, false otherwise.
      */
-    public function verifyCallback(mixed $data): bool
+    public function verifyCallback(mixed $data): array
     {
         if (empty($data) || !is_array($data) || array_key_exists('signature', $data) === false) {
             throw new RuntimeException('Invalid callback data for signature verification');
@@ -238,7 +238,12 @@ class KashierService implements PaymentGatewayInterface
 
         $signature = hash_hmac('sha256', $queryString, $this->secretKey, false);
 
-        return $signature === data_get($data, 'signature');
+        return [
+            "success" => $signature === data_get($data, 'signature'),
+            "signature" => $signature,
+            "query_String" => $queryString,
+            "provided_signature" => data_get($data, 'signature'),
+        ];
     }
 
     /**
