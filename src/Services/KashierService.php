@@ -222,13 +222,12 @@ class KashierService implements PaymentGatewayInterface
      */
     public function verifyCallback(mixed $data): bool
     {
-        if (empty($data) || !is_array($data) || array_key_exists('request', $data) === false) {
+        if (empty($data) || !is_array($data) || array_key_exists('signature', $data) === false) {
             throw new RuntimeException('Invalid callback data for signature verification');
         }
 
         $queryString = '';
-        $callbackData = data_get($data ,"request");
-        foreach ($callbackData as $key => $value) {
+        foreach ($data as $key => $value) {
             if ($key === 'signature' || $key === 'mode') {
                 continue;
             }
@@ -239,7 +238,7 @@ class KashierService implements PaymentGatewayInterface
 
         $signature = hash_hmac('sha256', $queryString, $this->secretKey, false);
 
-        return $signature === data_get($callbackData, 'signature');
+        return $signature === data_get($data, 'signature');
     }
 
     /**
