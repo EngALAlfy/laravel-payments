@@ -215,34 +215,71 @@ class KashierService implements PaymentGatewayInterface
     }
 
     /**
-     * Verify the callback signature from Kashier to ensure it is valid.
+     * Verify the callback from Kashier by fetching the transaction from the API
+     * and ensuring the payment is successful and the amount matches.
      *
-     * @param mixed $data The callback query parameters.
-     * @return array True if the signature is valid, false otherwise.
+     * @param mixed $data The callback data. Must contain:
+     *   - transaction_id (string): The Kashier transaction ID (e.g., "TX-243585751279").
+     *   - amount (float|int): The expected payment amount to verify against.
+     * @return array Verified transaction data.
+     *
+     * @throws \Exception
      */
     public function verifyCallback(mixed $data): array
     {
-        if (empty($data) || !is_array($data) || array_key_exists('signature', $data) === false) {
-            throw new RuntimeException('Invalid callback data for signature verification');
+        $transactionId = data_get($data, 'transaction_id');
+        $expectedAmount = data_get($data, 'amount');
+
+        if (empty($transactionId)) {
+            throw new RuntimeException('Kashier transaction ID not found in callback data');
         }
 
-        $queryString = '';
-        foreach ($data as $key => $value) {
-            if ($key === 'signature' || $key === 'mode') {
-                continue;
-            }
-            $queryString .= '&' . $key . '=' . $value;
+        if (is_null($expectedAmount) || $expectedAmount <= 0) {
+            throw new RuntimeException('Expected amount is missing or invalid in callback data');
         }
 
-        $queryString = ltrim($queryString, '&');
+        // Fetch transaction details from Kashier API
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => $this->secretKey,
+        ])->get("{$this->baseUrl}/v2/aggregator/transactions/{$transactionId}");
 
-        $signature = hash_hmac('sha256', $queryString, $this->secretKey, false);
+        if (!$response->successful()) {
+            Log::error('Kashier transaction verification API failed', [
+                'transaction_id' => $transactionId,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            throw new RuntimeException('Failed to fetch transaction from Kashier: ' . $response->body());
+        }
+
+        $result = $response->json();
+        $transaction = data_get($result, 'body');
+
+        if (empty($transaction)) {
+            throw new RuntimeException('Transaction data not found in Kashier response');
+        }
+
+        // Verify payment status
+        $paymentStatus = data_get($transaction, 'paymentStatus');
+        if (strtoupper($paymentStatus) !== 'SUCCESS') {
+            throw new RuntimeException("Kashier payment not successful. Status: {$paymentStatus}");
+        }
+
+        // Verify amount matches
+        $paidAmount = (float) data_get($transaction, 'amount');
+        $expectedAmount = (float) $expectedAmount;
+
+        if (abs($paidAmount - $expectedAmount) > 0.01) {
+            throw new RuntimeException(
+                "Kashier payment amount mismatch. Expected: {$expectedAmount}, Paid: {$paidAmount}"
+            );
+        }
 
         return [
-            "success" => $signature === data_get($data, 'signature'),
-            "signature" => $signature,
-            "query_String" => $queryString,
-            "provided_signature" => data_get($data, 'signature'),
+            'success' => true,
+            'data' => $transaction,
+            'raw' => $result,
         ];
     }
 
