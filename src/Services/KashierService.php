@@ -222,8 +222,11 @@ class KashierService implements PaymentGatewayInterface
      */
     public function verifyCallback(mixed $data): bool
     {
-        $queryString = '';
+        if (empty($data) || !is_array($data) || array_key_exists('signature', $data) === false) {
+            throw new RuntimeException('Invalid callback data for signature verification');
+        }
 
+        $queryString = '';
         foreach ($data as $key => $value) {
             if ($key === 'signature' || $key === 'mode') {
                 continue;
