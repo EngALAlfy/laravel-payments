@@ -12,7 +12,7 @@ use RuntimeException;
 class FawaterakService implements PaymentGatewayInterface
 {
     private const TEST_API_URL = 'https://staging.fawaterk.com/api/v2/';
-    private const PROD_API_URL = 'https://staging.fawaterk.com/api/v2/';
+    private const PROD_API_URL = 'https://app.fawaterk.com/api/v2/';
 
     private string $apiUrl;
     private string $token;
