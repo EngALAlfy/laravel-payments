@@ -7,6 +7,7 @@ use EngAlalfy\LaravelPayments\Interfaces\PaymentGatewayInterface;
 use EngAlalfy\LaravelPayments\Services\FawaterakService;
 use EngAlalfy\LaravelPayments\Services\KashierService;
 use EngAlalfy\LaravelPayments\Services\PaymobService;
+use EngAlalfy\LaravelPayments\Services\PaytabsService;
 use EngAlalfy\LaravelPayments\Services\TelrService;
 use InvalidArgumentException;
 
@@ -32,6 +33,7 @@ class PaymentGatewayFactory
             GatewayType::KASHIER => new KashierService($credential),
             GatewayType::TELR => new TelrService($credential),
             GatewayType::FAWATERAK => new FawaterakService($credential),
+            GatewayType::PAYTABS => new PaytabsService($credential),
             default => throw new InvalidArgumentException("Unsupported payment gateway: {$gatewayType->value}")
         };
     }

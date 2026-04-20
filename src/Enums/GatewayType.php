@@ -10,5 +10,6 @@ enum GatewayType: string
     case OPAY = 'opay';
     case TELR = 'telr';
     case FAWATERAK = 'fawaterak';
+    case PAYTABS = 'paytabs';
 
 }

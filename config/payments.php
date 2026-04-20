@@ -37,4 +37,13 @@ return [
         'api_url' => env('FAWATERAK_API_URL', 'https://staging.fawaterk.com/api/v2/'),
         'token' => env('FAWATERAK_TOKEN'),
     ],
+
+    'paytabs' => [
+        'base_url' => env('PAYTABS_BASE_URL', 'https://secure-global.paytabs.com'),
+        'server_key' => env('PAYTABS_SERVER_KEY'),
+        'profile_id' => env('PAYTABS_PROFILE_ID'),
+        'return_url' => env('PAYTABS_RETURN_URL', ''),
+        'callback_url' => env('PAYTABS_CALLBACK_URL', ''),
+        'currency' => env('PAYTABS_CURRENCY', 'USD'),
+    ],
 ];
