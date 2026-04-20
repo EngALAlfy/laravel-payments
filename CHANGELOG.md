@@ -2,6 +2,10 @@
 
 All notable changes to `laravel-payments` will be documented in this file.
 
+## v1.0.25 - 2026-04-20
+
+**Full Changelog**: https://github.com/EngALAlfy/laravel-payments/compare/v1.0.24...v1.0.25
+
 ## v1.0.0 - 2025-04-06
 
 ### Laravel Payments v1.0.0 - First Release
